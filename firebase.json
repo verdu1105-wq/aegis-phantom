@@ -1,0 +1,8 @@
+﻿{
+  "hosting": {
+    "site": "aegis-phantom-ops",
+    "public": ".",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "*.py", "requirements.txt", "Dockerfile", "*.db"],
+    "rewrites": [{"source": "**", "destination": "/aegis-command.html"}]
+  }
+}

@@ -1,0 +1,1005 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AEGIS PHANTOM | Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#080f18;--panel:#0d1e35;--panel2:#112440;
+  --border:rgba(0,180,255,0.25);--bhot:rgba(0,212,255,0.6);
+  --green:#00ff88;--cyan:#00d4ff;--amber:#ffb300;--red:#ff3b3b;--purple:#c084fc;
+  --text:#c0e0f5;--dim:#4a8aaa;--white:#e8f4ff;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,180,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,255,0.03) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0;}
+
+/* LOGIN */
+#login{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+.lbox{width:100%;max-width:380px;border:1px solid var(--bhot);background:var(--panel);padding:30px;box-shadow:0 0 40px rgba(0,212,255,0.15);}
+.ltitle{text-align:center;margin-bottom:24px;}
+.ltitle h1{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--cyan);letter-spacing:5px;text-shadow:0 0 20px rgba(0,212,255,0.6);}
+.ltitle p{font-size:9px;color:var(--dim);letter-spacing:3px;margin-top:4px;}
+.lf{margin-bottom:12px;}
+.lf label{display:block;font-family:'Orbitron',monospace;font-size:8px;color:var(--dim);letter-spacing:3px;margin-bottom:5px;}
+.lf input{width:100%;background:rgba(0,0,0,0.5);border:1px solid var(--border);color:var(--white);padding:10px 12px;font-family:'Share Tech Mono',monospace;font-size:14px;outline:none;transition:all 0.2s;}
+.lf input:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,212,255,0.2);}
+.lbtn{width:100%;font-family:'Orbitron',monospace;font-size:11px;padding:12px;border:1px solid var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08);cursor:pointer;letter-spacing:3px;margin-top:6px;transition:all 0.2s;}
+.lbtn:active{background:rgba(0,212,255,0.2);}
+.lerr{color:var(--red);font-size:10px;margin-top:8px;text-align:center;min-height:14px;}
+
+/* APP */
+#app{display:flex;flex-direction:column;height:100%;position:relative;z-index:1;}
+
+/* HEADER */
+#hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:linear-gradient(180deg,rgba(0,212,255,0.08) 0%,transparent 100%);border-bottom:1px solid var(--border);}
+.hlogo{display:flex;align-items:center;gap:8px;}
+.hicon{width:32px;height:32px;border:2px solid var(--cyan);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;animation:pulse 2.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(0,212,255,0.3);}50%{box-shadow:0 0 20px rgba(0,212,255,0.7);}}
+.htitle{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--cyan);letter-spacing:3px;}
+.hsub{font-size:8px;color:var(--dim);letter-spacing:2px;}
+.hright{display:flex;align-items:center;gap:10px;}
+.edot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.elbl{font-family:'Orbitron',monospace;font-size:9px;color:var(--green);}
+.ubadge{font-family:'Orbitron',monospace;font-size:9px;padding:3px 8px;border:1px solid var(--cyan);color:var(--cyan);}
+#clock{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);}
+
+/* THREAT BAR */
+#tbar{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:5px 14px;background:rgba(0,0,0,0.3);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+#tbar::-webkit-scrollbar{display:none;}
+.tmode{font-family:'Orbitron',monospace;font-size:9px;padding:4px 10px;border:1px solid var(--green);color:var(--green);background:rgba(0,255,136,0.08);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+.tmode.red{border-color:var(--red);color:var(--red);background:rgba(255,59,59,0.08);}
+.tsep{color:var(--dim);}
+.tstat{font-family:'Orbitron',monospace;font-size:8px;color:var(--dim);white-space:nowrap;}
+.tstat span{color:var(--cyan);}
+.tstat span.g{color:var(--green);}
+.tstat span.r{color:var(--red);}
+
+/* TARGET BAR */
+#targetbar{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(0,212,255,0.04);border-bottom:1px solid var(--border);}
+.tlbl{font-family:'Orbitron',monospace;font-size:8px;color:var(--dim);letter-spacing:2px;white-space:nowrap;}
+#target-input{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--white);padding:5px 10px;font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;flex:1;max-width:220px;transition:all 0.2s;}
+#target-input:focus{border-color:var(--cyan);}
+.tbtn{font-family:'Orbitron',monospace;font-size:8px;padding:5px 12px;border:1px solid var(--amber);color:var(--amber);background:rgba(255,179,0,0.05);cursor:pointer;white-space:nowrap;transition:all 0.2s;letter-spacing:1px;}
+.tbtn:active{background:rgba(255,179,0,0.2);}
+#radar-status{font-family:'Orbitron',monospace;font-size:9px;color:var(--dim);white-space:nowrap;}
+#radar-status.live{color:var(--green);}
+
+/* TABS */
+#tabs{flex-shrink:0;display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2);overflow-x:auto;scrollbar-width:none;}
+#tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:10px 14px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s;}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tbadge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3px;border-radius:2px;font-size:9px;font-weight:700;background:rgba(255,59,59,0.15);color:var(--red);border:1px solid rgba(255,59,59,0.3);margin-left:4px;}
+.tbadge.g{background:rgba(0,255,136,0.15);color:var(--green);border-color:rgba(0,255,136,0.3);}
+
+/* CONTENT */
+#content{flex:1;overflow:hidden;position:relative;}
+.panel{position:absolute;inset:0;overflow-y:auto;display:none;}
+.panel.active{display:block;}
+
+/* OPS */
+#ops{display:none;}
+#ops.active{display:flex;flex-direction:column;height:100%;}
+
+/* STATS */
+.stats{flex-shrink:0;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);}
+.sbox{background:var(--panel);padding:10px 6px;display:flex;flex-direction:column;align-items:center;transition:background 0.2s;}
+.sbox:active{background:var(--panel2);}
+.snum{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;}
+.snum.r{color:var(--red);text-shadow:0 0 8px rgba(255,59,59,0.4);}
+.snum.y{color:var(--amber);text-shadow:0 0 8px rgba(255,179,0,0.4);}
+.snum.g{color:var(--green);text-shadow:0 0 8px rgba(0,255,136,0.4);}
+.snum.p{color:var(--purple);text-shadow:0 0 8px rgba(192,132,252,0.4);}
+.slbl{font-family:'Orbitron',monospace;font-size:7px;letter-spacing:2px;color:var(--dim);margin-top:2px;}
+
+/* OPS BODY */
+.obody{flex:1;display:flex;overflow:hidden;gap:1px;background:var(--border);}
+.feedcol{flex:1;display:flex;flex-direction:column;background:var(--panel);min-width:0;}
+.feedhdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);}
+.feedtitle{font-family:'Orbitron',monospace;font-size:9px;color:var(--cyan);letter-spacing:2px;display:flex;align-items:center;gap:6px;}
+.cdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1s ease-in-out infinite;}
+.cdot.off{background:var(--red);box-shadow:0 0 6px var(--red);animation:none;}
+#feed{flex:1;overflow-y:auto;padding:4px 0;}
+.fe{display:flex;align-items:flex-start;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(0,180,255,0.04);transition:background 0.15s;}
+.fe:active{background:rgba(0,212,255,0.05);}
+.fe.threat{border-left:2px solid var(--red);}
+.fe.kill{border-left:2px solid var(--green);}
+.fe.gator{border-left:2px solid var(--amber);}
+.ftime{font-size:9px;color:var(--dim);white-space:nowrap;flex-shrink:0;padding-top:1px;min-width:48px;}
+.ftext{font-size:11px;color:var(--text);line-height:1.4;word-break:break-word;}
+
+/* SIDEBAR */
+.sidecol{flex-shrink:0;width:220px;display:flex;flex-direction:column;background:var(--panel);overflow-y:auto;}
+@media(max-width:640px){.sidecol{display:none;}}
+
+/* SECTION */
+.sec{padding:10px 12px;border-bottom:1px solid var(--border);}
+.seclbl{font-family:'Orbitron',monospace;font-size:7px;letter-spacing:2px;color:var(--dim);margin-bottom:6px;}
+.secrow{display:flex;gap:6px;margin-top:6px;}
+.pt{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:var(--dim);padding:8px 12px 6px;border-bottom:1px solid var(--border);background:rgba(0,180,255,0.06);border-left:3px solid var(--cyan);display:flex;align-items:center;justify-content:space-between;}
+.pt span{color:var(--cyan);}
+
+/* INPUTS */
+.inp{background:rgba(0,0,0,0.5);border:1px solid var(--border);color:var(--white);padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;transition:all 0.2s;width:100%;}
+.inp:focus{border-color:var(--cyan);}
+.inp::placeholder{color:var(--dim);}
+
+/* BUTTONS */
+.btn{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:8px 10px;border:1px solid;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.btn:active{opacity:0.7;}
+.btn.r{border-color:var(--red);color:var(--red);background:rgba(255,59,59,0.05);}
+.btn.g{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.05);}
+.btn.a{border-color:var(--amber);color:var(--amber);background:rgba(255,179,0,0.05);}
+.btn.c{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.05);}
+.btn.p{border-color:var(--purple);color:var(--purple);background:rgba(192,132,252,0.05);}
+
+/* MODE GRID */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.mbtn{font-family:'Orbitron',monospace;font-size:9px;padding:10px 6px;letter-spacing:1px;border:1px solid var(--dim);color:var(--dim);background:rgba(0,0,0,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.2s;}
+.mbtn.ag{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.08);box-shadow:0 0 10px rgba(0,255,136,0.2);}
+.mbtn.ar{border-color:var(--red);color:var(--red);background:rgba(255,59,59,0.08);}
+
+/* ACTIVITY */
+.aentry{display:flex;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(0,180,255,0.04);font-size:10px;color:var(--dim);}
+.aact.block{color:var(--red);}
+.aact.vouch{color:var(--green);}
+.aact.sys{color:var(--cyan);}
+
+/* GOON LIST */
+.gentry{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(0,180,255,0.06);transition:background 0.15s;}
+.gentry:active{background:rgba(0,212,255,0.04);}
+.gavatar{width:26px;height:26px;border-radius:50%;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.gname{flex:1;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gtag{font-size:8px;padding:2px 5px;border:1px solid rgba(255,59,59,0.3);color:var(--red);}
+
+/* MOBILE ACTION BAR */
+#mobbar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--panel);border-top:2px solid var(--bhot);box-shadow:0 -4px 20px rgba(0,212,255,0.2);padding-bottom:env(safe-area-inset-bottom,0px);}
+.mobbtns{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);}
+.mobbtn{background:var(--panel2);padding:10px 4px;font-family:'Orbitron',monospace;font-size:8px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.15s;}
+.mobbtn:active{opacity:0.7;transform:scale(0.97);}
+.mobbtn.r{color:var(--red);}
+.mobbtn.g{color:var(--green);}
+.mobbtn.a{color:var(--amber);}
+.mobbtn.c{color:var(--cyan);}
+.mobbtn.p{color:var(--purple);}
+.mobicon{font-size:16px;}
+#drawer{display:none;padding:10px 12px;background:var(--panel2);border-top:1px solid var(--border);}
+#drawer.open{display:flex;gap:8px;align-items:center;}
+
+/* VAMPIRE */
+#vamp{display:none;position:fixed;inset:0;z-index:9000;border:3px solid var(--red);background:rgba(255,0,0,0.06);pointer-events:none;animation:vblink 0.5s ease-in-out infinite;}
+@keyframes vblink{0%,100%{border-color:rgba(255,59,59,0.3);}50%{border-color:var(--red);}}
+#vamp.on{display:block;}
+.vtxt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',monospace;font-size:24px;font-weight:900;color:var(--red);text-shadow:0 0 20px rgba(255,59,59,0.8);letter-spacing:5px;text-align:center;}
+
+/* GOON INTEL */
+.dropzone{border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px 20px;margin:12px;transition:all 0.2s;cursor:pointer;min-height:130px;}
+.dropzone:active,.dropzone.dz{border-color:var(--cyan);background:rgba(0,212,255,0.05);}
+.dzicon{font-size:28px;opacity:0.6;}
+.dztxt{font-family:'Orbitron',monospace;font-size:10px;color:var(--cyan);letter-spacing:2px;}
+.dzsub{font-size:9px;color:var(--dim);}
+.scancard{width:110px;border:1px solid var(--border);background:rgba(0,0,0,0.3);position:relative;}
+.scanimg{width:100%;height:75px;object-fit:cover;display:block;background:var(--panel2);}
+.scanst{padding:3px 6px;font-size:8px;color:var(--dim);}
+
+@media(max-width:640px){
+  #mobbar{display:block;}
+  #feed{padding-bottom:110px;}
+}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--dim);}
+</style>
+</head>
+<body>
+
+<!-- VAMPIRE -->
+<div id="vamp"><div class="vtxt">⚠ BOT WAVE<br><span style="font-size:14px;letter-spacing:3px">CWIS ENGAGED</span></div></div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="lbox">
+    <div class="ltitle"><h1>AEGIS PHANTOM</h1><p>SECURE OPERATIONS v4</p></div>
+    <div class="lf"><label>OPERATOR ID</label><input type="text" id="lu" placeholder="username" autocomplete="off" autocapitalize="none"></div>
+    <div class="lf"><label>ACCESS CODE</label><input type="password" id="lp" placeholder="••••••••"></div>
+    <button class="lbtn" id="lbtn">AUTHENTICATE</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <div id="hdr">
+    <div class="hlogo">
+      <div class="hicon">🛡️</div>
+      <div><div class="htitle">AEGIS PHANTOM</div><div class="hsub">AUTONOMOUS DEFENSE v4</div></div>
+    </div>
+    <div class="hright">
+      <div class="edot"></div><span class="elbl">ONLINE</span>
+      <span class="ubadge" id="ubadge">VERN</span>
+      <span id="clock">00:00:00</span>
+    </div>
+  </div>
+
+  <div id="tbar">
+    <div class="tmode" id="tmode" onclick="cycleMode()">⚡ WATCH</div>
+    <span class="tsep">|</span>
+    <div class="tstat">CWIS <span id="cwis-s">STANDBY</span></div>
+    <div class="tstat">KILLS <span class="r" id="kills">0</span></div>
+    <div class="tstat">VAULT <span class="g" id="vaultn">0</span></div>
+    <div class="tstat">WAVE <span id="wave">CLEAR</span></div>
+  </div>
+
+  <!-- TARGET BAR -->
+  <div id="targetbar">
+    <span class="tlbl">TARGET</span>
+    <input type="text" id="target-input" placeholder="@username" autocapitalize="none" autocomplete="off">
+    <button class="tbtn" onclick="setTarget()">🎯 LOCK ON</button>
+    <span id="radar-status">⚪ STANDBY</span>
+  </div>
+
+  <div id="tabs">
+    <div class="tab active" onclick="sw('ops')" id="tb-ops">⚡ OPS</div>
+    <div class="tab" onclick="sw('intel')" id="tb-intel">🕵️ MOLE <span class="tbadge" id="ib">0</span></div>
+    <div class="tab" onclick="sw('goons')" id="tb-goons">💀 GOONS <span class="tbadge g" id="gb">0</span></div>
+    <div class="tab" onclick="sw('spector')" id="tb-spector">👁 SPECTOR</div>
+    <div class="tab" onclick="sw('gi')" id="tb-gi">📸 INTEL</div>
+    <div class="tab" onclick="sw('admin')" id="tb-admin" style="display:none">⚙️ ADMIN</div>
+  </div>
+
+  <div id="content">
+
+    <!-- OPS -->
+    <div id="ops" class="active">
+      <div class="stats">
+        <div class="sbox"><div class="snum r" id="s-blocked">0</div><div class="slbl">BLOCKED</div></div>
+        <div class="sbox"><div class="snum y" id="s-flagged">0</div><div class="slbl">FLAGGED</div></div>
+        <div class="sbox"><div class="snum g" id="s-intel">0</div><div class="slbl">INTEL</div></div>
+        <div class="sbox"><div class="snum p" id="s-vault">0</div><div class="slbl">VAULT</div></div>
+      </div>
+      <div class="obody">
+        <div class="feedcol">
+          <div class="feedhdr">
+            <div class="feedtitle">📡 LIVE FEED <div class="cdot" id="cdot"></div><span id="connlbl" style="font-family:Orbitron,monospace;font-size:8px;color:var(--green)">CONNECTED</span></div>
+            <button class="btn a" onclick="clearFeed()" style="font-size:8px;padding:4px 8px">CLEAR</button>
+          </div>
+          <div id="feed"></div>
+        </div>
+        <div class="sidecol">
+          <div class="pt">🛡️ <span>DEFENSE MODE</span></div>
+          <div class="sec">
+            <div class="mgrid">
+              <button class="mbtn ag" id="m-watch" onclick="setMode('WATCH')">👁 WATCH</button>
+              <button class="mbtn" id="m-block" onclick="setMode('BLOCK')">🚫 BLOCK</button>
+              <button class="mbtn" id="m-lockdown" onclick="setMode('LOCKDOWN')">🔒 LOCKDOWN</button>
+              <button class="mbtn" id="m-stealth" onclick="setMode('STEALTH')">👻 STEALTH</button>
+            </div>
+          </div>
+          <div class="pt">➕ <span>QUICK ADD GOON</span></div>
+          <div class="sec">
+            <div class="secrow">
+              <input class="inp" id="qa" placeholder="@username" onkeydown="if(event.key==='Enter')quickAdd()">
+              <button class="btn a" onclick="quickAdd()">ADD</button>
+            </div>
+          </div>
+          <div class="pt">🎯 <span>MOD ACTIONS</span></div>
+          <div class="sec">
+            <div class="seclbl">🚫 BLOCK</div>
+            <div class="secrow"><input class="inp" id="bi" placeholder="@username" onkeydown="if(event.key==='Enter')modBlock()"><button class="btn r" onclick="modBlock()">🚫</button></div>
+          </div>
+          <div class="sec">
+            <div class="seclbl">⭐ VOUCH</div>
+            <div class="secrow"><input class="inp" id="vi" placeholder="@username" onkeydown="if(event.key==='Enter')modVouch()"><button class="btn g" onclick="modVouch()">✅</button></div>
+          </div>
+          <div class="sec">
+            <div class="seclbl">🚨 REPORT</div>
+            <div class="secrow"><input class="inp" id="ri" placeholder="@username"><button class="btn p" onclick="modReport()">🚨</button></div>
+          </div>
+          <div class="pt">📋 <span>ACTIVITY</span></div>
+          <div id="activity" style="overflow-y:auto;max-height:200px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOLE INTEL -->
+    <div id="intel" class="panel">
+      <div class="pt">🕵️ <span>MOLE STATUS</span></div>
+      <div class="sec">
+        <div style="padding:10px;border:1px solid var(--border);background:rgba(0,0,0,0.2)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-family:Orbitron,monospace;font-size:10px;color:var(--cyan)">🟢 MOLE BRAVO</span>
+            <span id="mole-badge" style="font-family:Orbitron,monospace;font-size:8px;padding:2px 8px;border:1px solid var(--dim);color:var(--dim)">STANDBY</span>
+          </div>
+          <div style="font-size:10px;color:var(--dim)">TARGET: <span id="mole-target" style="color:var(--cyan)">—</span></div>
+        </div>
+      </div>
+      <div class="pt">📡 <span>INTEL STREAM</span></div>
+      <div style="padding:12px;color:var(--dim);font-size:10px">Waiting for mole intel...</div>
+      <div class="pt">🚨 <span>ACTIVE THREATS</span></div>
+      <div style="padding:20px;text-align:center;color:var(--dim);font-size:10px;letter-spacing:2px">NO ACTIVE THREATS</div>
+    </div>
+
+    <!-- GOONS -->
+    <div id="goons" class="panel">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);z-index:10">
+        <span style="font-family:Orbitron,monospace;font-size:9px;color:var(--cyan);white-space:nowrap">💀 VAULT</span>
+        <input class="inp" placeholder="Search..." id="gsearch" oninput="filterGoons()" style="flex:1">
+        <button class="btn c" onclick="loadGoons()" style="font-size:9px;padding:5px 8px">↻</button>
+        <span style="font-family:Orbitron,monospace;font-size:9px;color:var(--purple);white-space:nowrap" id="gcnt">0</span>
+      </div>
+      <div id="glist"></div>
+    </div>
+
+    <!-- SPECTOR -->
+    <div id="spector" class="panel">
+      <div class="pt">👁 <span>SPECTOR RECON</span></div>
+      <div class="sec">
+        <div class="seclbl">TARGET USERNAME</div>
+        <div class="secrow"><input class="inp" id="si" placeholder="@username" onkeydown="if(event.key==='Enter')spectorScan()"><button class="btn c" onclick="spectorScan()">SCAN</button></div>
+        <div id="sresult" style="margin-top:8px;font-size:10px;color:var(--dim);padding:8px;border:1px solid var(--border);min-height:60px">Enter username to begin...</div>
+      </div>
+      <div class="pt">🔮 <span>ALT ACCOUNT PREDICTOR</span></div>
+      <div class="sec">
+        <div class="secrow"><input class="inp" id="pi2" placeholder="Known username..."><button class="btn c" onclick="predictAlts()">PREDICT</button></div>
+        <div id="presult" style="margin-top:8px;font-size:10px;color:var(--dim);padding:8px;border:1px solid var(--border);min-height:60px">Alt-account engine ready...</div>
+      </div>
+      <div class="pt">👤 <span>THREAT PROFILES</span></div>
+      <div id="sprofiles"></div>
+    </div>
+
+    <!-- GOON INTEL -->
+    <div id="gi" class="panel">
+      <div class="pt">📷 <span>SCREENSHOT SCAN</span> <span style="font-size:7px;color:var(--dim)">AI READS USERNAMES</span></div>
+      <div id="scanmode-bar" style="display:flex;gap:6px;padding:8px 12px;align-items:center;border-bottom:1px solid var(--border)">
+        <span style="font-family:Orbitron,monospace;font-size:8px;color:var(--dim)">MODE:</span>
+        <button class="btn r" id="sm-hostile" onclick="setScanMode('hostile')" style="font-size:8px;padding:4px 8px;flex:1">💀 HOSTILE</button>
+        <button class="btn g" id="sm-friendly" onclick="setScanMode('friendly')" style="font-size:8px;padding:4px 8px;flex:1;opacity:0.4">✅ FRIENDLY</button>
+      </div>
+      <div id="scanmode-lbl" style="text-align:center;font-family:Orbitron,monospace;font-size:9px;color:var(--red);padding:4px;letter-spacing:2px">ADDING TO GOON VAULT</div>
+      <div class="dropzone" id="dz" onclick="document.getElementById('fi').click()" ondragover="event.preventDefault();this.classList.add('dz')" ondragleave="this.classList.remove('dz')" ondrop="handleDrop(event)">
+        <div class="dzicon">📁</div>
+        <div class="dztxt">DROP SCREENSHOTS HERE</div>
+        <div class="dzsub">PNG, JPG, HEIC — Multiple OK</div>
+      </div>
+      <input type="file" id="fi" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+      <div style="display:flex;gap:6px;padding:0 12px 10px">
+        <button class="btn g" onclick="addAllDetected()" style="flex:1;font-size:8px">ADD ALL</button>
+        <button class="btn a" onclick="addHighThreat()" style="flex:1;font-size:8px">HIGH THREAT</button>
+        <button class="btn r" onclick="clearQueue()" style="flex:1;font-size:8px">CLEAR</button>
+      </div>
+      <div class="pt">📋 <span>SCAN QUEUE (<span id="qc">0</span>)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px" id="sq"></div>
+      <div class="pt">📝 <span>BULK TEXT IMPORT</span></div>
+      <div class="sec">
+        <textarea class="inp" id="bt" placeholder="Paste any text with @usernames..." style="height:100px;resize:vertical;margin-top:6px"></textarea>
+        <button class="btn c" onclick="parseBulk()" style="width:100%;margin-top:6px;display:block;text-align:center">PARSE & EXTRACT</button>
+        <div id="br" style="margin-top:8px;font-size:10px;color:var(--dim)"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin" class="panel">
+      <div class="pt">⚙️ <span>ADMIN</span></div>
+      <div class="sec">
+        <div class="seclbl">EVIDENCE PACKAGE</div>
+        <button class="btn c" onclick="exportEvidence()" style="width:100%;display:block;text-align:center;margin-top:6px">EXPORT BLOCK LOG</button>
+      </div>
+      <div class="sec">
+        <div class="seclbl">FOLLOWER WHITELIST IMPORT</div>
+        <textarea class="inp" id="fl" placeholder="@username1&#10;@username2&#10;..." style="height:100px;resize:vertical;margin-top:6px"></textarea>
+        <button class="btn g" onclick="importFollowers()" style="width:100%;display:block;text-align:center;margin-top:6px">IMPORT FOLLOWERS</button>
+        <div id="flr" style="margin-top:6px;font-size:10px;color:var(--dim)"></div>
+      </div>
+      <div class="sec">
+        <button class="btn r" onclick="doLogout()" style="width:100%;display:block;text-align:center">LOGOUT & CLEAR SESSION</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MOBILE ACTION BAR -->
+  <div id="mobbar">
+    <div class="mobbtns">
+      <button class="mobbtn r" onclick="openDrawer('block')"><span class="mobicon">🚫</span>BLOCK</button>
+      <button class="mobbtn g" onclick="openDrawer('vouch')"><span class="mobicon">✅</span>VOUCH</button>
+      <button class="mobbtn a" onclick="openDrawer('add')"><span class="mobicon">➕</span>ADD</button>
+      <button class="mobbtn c" onclick="openDrawer('eyes')"><span class="mobicon">👁</span>EYES ON</button>
+      <button class="mobbtn p" onclick="openDrawer('report')"><span class="mobicon">🚨</span>REPORT</button>
+    </div>
+    <div id="drawer">
+      <input class="inp" id="dinp" placeholder="@username" style="flex:1" onkeydown="if(event.key==='Enter')drawerAction()">
+      <button class="btn" id="dbtn" onclick="drawerAction()">GO</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API = 'https://aegis-cwis-974184310088.us-east1.run.app';
+const WS_BASE = 'wss://aegis-cwis-974184310088.us-east1.run.app/ws/dashboard';
+const ANTHROPIC_KEY = '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';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let token = null, currentUser = null, ws = null;
+let kills = 0, goons = [], scanQueue = [], spectorProfiles = [];
+let currentMode = 'WATCH', drawerMode = null, scanMode = 'hostile';
+let currentTarget = '';
+
+// ── CLOCK ─────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toISOString().substring(11,19) + ' UTC';
+}, 1000);
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('lu').value.trim().toLowerCase();
+  const p = document.getElementById('lp').value;
+  const err = document.getElementById('lerr');
+  const btn = document.getElementById('lbtn');
+  btn.textContent = 'AUTHENTICATING...'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username:u, password:p})
+    });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    token = d.token;
+    currentUser = {username:u, role:d.role, display:d.display};
+    sessionStorage.setItem('aegis_token', token);
+    sessionStorage.setItem('aegis_user', JSON.stringify(currentUser));
+    sessionStorage.setItem('aegis_pw', p);
+    bootApp();
+  } catch {
+    err.textContent = 'ACCESS DENIED';
+    setTimeout(() => err.textContent = '', 3000);
+    btn.textContent = 'AUTHENTICATE'; btn.disabled = false;
+  }
+}
+
+function bootApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('ubadge').textContent = currentUser.display;
+  if (currentUser.role === 'GLOBAL_ADMIN') document.getElementById('tb-admin').style.display = 'flex';
+  
+  // Show mobile bar
+  if (window.innerWidth <= 768) document.getElementById('mobbar').style.display = 'block';
+  window.addEventListener('resize', () => {
+    document.getElementById('mobbar').style.display = window.innerWidth <= 768 ? 'block' : 'none';
+  });
+
+  addFeed('SYSTEM', `${currentUser.display} [${currentUser.role}] joined command`, '');
+  addActivity('Session started', 'sys');
+  connectWS();
+  loadGoons();
+  setInterval(loadGoons, 30000);
+
+  // Auto-fill last target
+  const lastTarget = sessionStorage.getItem('aegis_target');
+  if (lastTarget) {
+    document.getElementById('target-input').value = lastTarget;
+    currentTarget = lastTarget;
+  }
+}
+
+function doLogout() { sessionStorage.clear(); if(ws) ws.close(); location.reload(); }
+
+// ── TARGET ────────────────────────────────────────────────────────────────────
+function setTarget() {
+  const t = document.getElementById('target-input').value.trim().replace('@','').toLowerCase();
+  if (!t) return;
+  currentTarget = t;
+  sessionStorage.setItem('aegis_target', t);
+  document.getElementById('radar-status').textContent = '🟡 LOCKING...';
+  document.getElementById('radar-status').className = '';
+  document.getElementById('mole-target').textContent = '@' + t;
+  
+  // Tell Pi via Cloud Run
+  authFetch('/api/target', 'POST', {target: t}).catch(() => {});
+  
+  addFeed('🎯', `TARGET SET: @${t}`, '');
+  addActivity(`Target: @${t}`, 'sys');
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────────────────────────
+function connectWS() {
+  if (!token) return;
+  let wsFailCount = 0;
+  
+  function tryWS() {
+    try {
+      ws = new WebSocket(`${WS_BASE}?token=${token}`);
+      ws.onopen = () => {
+        wsFailCount = 0;
+        document.getElementById('connlbl').textContent = 'CONNECTED';
+        document.getElementById('connlbl').style.color = 'var(--green)';
+        document.getElementById('cdot').className = 'cdot';
+        addFeed('SYSTEM', 'Cloud link established', '');
+      };
+      ws.onmessage = e => { try { handleMsg(JSON.parse(e.data)); } catch {} };
+      ws.onclose = () => {
+        wsFailCount++;
+        if (wsFailCount >= 3) {
+          // WebSocket not supported - switch to polling mode
+          document.getElementById('connlbl').textContent = 'POLLING MODE';
+          document.getElementById('connlbl').style.color = 'var(--amber)';
+          startPolling();
+          return;
+        }
+        document.getElementById('connlbl').textContent = 'RECONNECTING...';
+        document.getElementById('connlbl').style.color = 'var(--amber)';
+        document.getElementById('cdot').className = 'cdot off';
+        setTimeout(tryWS, 5000);
+      };
+      ws.onerror = () => {};
+    } catch {
+      startPolling();
+    }
+  }
+  tryWS();
+}
+
+// Polling fallback when WebSocket unavailable
+let pollInterval = null;
+function startPolling() {
+  if (pollInterval) return;
+  addFeed('SYSTEM', 'WebSocket unavailable — polling mode active', '');
+  document.getElementById('connlbl').textContent = 'POLLING';
+  document.getElementById('connlbl').style.color = 'var(--amber)';
+  // Poll health endpoint every 10s for kill count updates
+  pollInterval = setInterval(async () => {
+    try {
+      const d = await authFetch('/health');
+      if (d && d.goon_vault !== undefined) {
+        // Update vault count from server
+        const serverVault = d.goon_vault;
+        document.getElementById('vault-n').textContent = serverVault;
+        document.getElementById('s-vault').textContent = serverVault;
+      }
+    } catch {}
+  }, 10000);
+}
+
+function handleMsg(d) {
+  if (d.type === 'ping') return;
+  if (d.type === 'join') {
+    const u = d.username || d.data?.username || '';
+    const threat = d.is_goon || d.data?.is_threat || false;
+    addFeed(threat ? '🚨' : '👤', `JOIN: @${u}`, threat ? 'threat' : '');
+  }
+  if (d.type === 'comment') {
+    const u = d.username || ''; const c = d.comment || '';
+    addFeed(d.is_goon ? '🚨' : '📡', `[${u}]: ${c}`, d.is_goon ? 'threat' : '');
+  }
+  if (d.type === 'cwis_block') {
+    kills++;
+    document.getElementById('kills').textContent = kills;
+    document.getElementById('s-blocked').textContent = kills;
+    const u = d.username || ''; const reason = d.reason || 'AUTO';
+    addFeed('🔫', `CWIS KILL #${kills}: @${u} — ${reason}`, 'kill');
+    addActivity(`BLOCKED @${u}`, 'block');
+    document.body.style.outline = '2px solid rgba(0,255,136,0.4)';
+    setTimeout(() => document.body.style.outline = '', 400);
+  }
+  if (d.type === 'intel' && d.intel_type === 'VAMPIRE') triggerVampire(d.message);
+  if (d.type === 'intel' && d.intel_type === 'GATOR_SIGHTING') addFeed('🐊', d.message || 'GATOR', 'gator');
+  if (d.type === 'radar_online') {
+    document.getElementById('radar-status').textContent = '🟢 RADAR LOCKED';
+    document.getElementById('radar-status').className = 'live';
+    document.getElementById('mole-badge').textContent = 'LIVE';
+    document.getElementById('mole-badge').style.color = 'var(--green)';
+    addFeed('✅', `RADAR LOCKED: @${currentTarget}`, 'kill');
+  }
+  if (d.type === 'radar_offline') {
+    document.getElementById('radar-status').textContent = '🔴 OFFLINE';
+    document.getElementById('radar-status').className = '';
+    document.getElementById('mole-badge').textContent = 'STANDBY';
+    document.getElementById('mole-badge').style.color = 'var(--dim)';
+  }
+  if (d.type === 'goon_added' && !goons.includes(d.username)) {
+    goons.push(d.username); updateVault();
+  }
+  if (d.type === 'mode_change') updateModeUI(d.mode);
+}
+
+// ── FEED ──────────────────────────────────────────────────────────────────────
+function addFeed(icon, text, cls) {
+  const f = document.getElementById('feed');
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el = document.createElement('div');
+  el.className = `fe ${cls||''}`;
+  el.innerHTML = `<span class="ftime">${t}</span><span class="ftext">${icon} ${esc(text)}</span>`;
+  f.appendChild(el);
+  f.scrollTop = f.scrollHeight;
+  while(f.children.length > 500) f.removeChild(f.firstChild);
+}
+function clearFeed() { document.getElementById('feed').innerHTML = ''; }
+function addActivity(text, type) {
+  const a = document.getElementById('activity'); if(!a) return;
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
+  const el = document.createElement('div');
+  el.className = 'aentry';
+  el.innerHTML = `<span style="flex-shrink:0;color:var(--dim)">${t}</span><span class="aact ${type||''}">${esc(text)}</span>`;
+  a.insertBefore(el, a.firstChild);
+  while(a.children.length > 50) a.removeChild(a.lastChild);
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function sw(tab) {
+  ['ops','intel','goons','spector','gi','admin'].forEach(t => {
+    const btn = document.getElementById(`tb-${t}`);
+    const panel = document.getElementById(t);
+    if(btn) btn.classList.toggle('active', t===tab);
+    if(panel) {
+      if(t==='ops') panel.classList.toggle('active', t===tab);
+      else panel.style.display = t===tab ? 'block' : 'none';
+    }
+  });
+  if(tab==='goons') renderGoons();
+  if(tab==='spector') renderSpector();
+}
+
+// ── MODE ──────────────────────────────────────────────────────────────────────
+const MODES = ['WATCH','BLOCK','LOCKDOWN','STEALTH'];
+const MICONS = {WATCH:'👁',BLOCK:'🚫',LOCKDOWN:'🔒',STEALTH:'👻'};
+let modeIdx = 0;
+function cycleMode() { modeIdx=(modeIdx+1)%MODES.length; setMode(MODES[modeIdx]); }
+async function setMode(mode) {
+  currentMode=mode; updateModeUI(mode);
+  try { await authFetch('/api/mode','POST',{mode}); } catch {}
+  addActivity(`Mode: ${mode}`,'sys');
+}
+function updateModeUI(mode) {
+  currentMode=mode; modeIdx=MODES.indexOf(mode);
+  const tm = document.getElementById('tmode');
+  tm.textContent = `${MICONS[mode]||'⚡'} ${mode}`;
+  tm.className = (mode==='BLOCK'||mode==='LOCKDOWN') ? 'tmode red' : 'tmode';
+  MODES.forEach(m => {
+    const b = document.getElementById(`m-${m.toLowerCase()}`);
+    if(b) b.className = `mbtn ${m===mode?(m==='WATCH'?'ag':'ar'):''}`;
+  });
+}
+
+// ── VAMPIRE ───────────────────────────────────────────────────────────────────
+function triggerVampire(reason) {
+  document.getElementById('vamp').classList.add('on');
+  document.getElementById('wave').textContent='DETECTED';
+  document.getElementById('wave').style.color='var(--red)';
+  addFeed('🔴',`VAMPIRE: ${reason||'BOT WAVE'}`,'threat');
+  setTimeout(()=>{
+    document.getElementById('vamp').classList.remove('on');
+    document.getElementById('wave').textContent='CLEAR';
+    document.getElementById('wave').style.color='var(--cyan)';
+  },10000);
+}
+
+// ── GOONS ─────────────────────────────────────────────────────────────────────
+async function loadGoons() {
+  try {
+    const d = await authFetch('/api/goons');
+    const raw = d.goons || [];
+    // Clear and repopulate from server — server is source of truth
+    goons = [];
+    goons = raw.map(g => {
+      try { const p = JSON.parse(g); return p.username || g; } catch { return g; }
+    }).filter(u => u && !u.includes('get-content')).sort();
+    updateVault();
+    if(document.getElementById('goons').style.display !== 'none') renderGoons();
+    return goons;
+  } catch(e) {
+    console.error('loadGoons error:', e);
+  }
+}
+function updateVault() {
+  const n = goons.length;
+  document.getElementById('s-vault').textContent = n;
+  document.getElementById('vaultn').textContent = n;
+  document.getElementById('gb').textContent = n;
+  document.getElementById('gcnt').textContent = n + ' ACCOUNTS';
+}
+function renderGoons() {
+  const search = document.getElementById('gsearch').value.toLowerCase();
+  const list = document.getElementById('glist');
+  const filtered = goons.filter(g => g.toLowerCase().includes(search));
+  list.innerHTML = filtered.map(g => `
+    <div class="gentry">
+      <div class="gavatar">💀</div>
+      <span class="gname">@${esc(g)}</span>
+      <span class="gtag">HOSTILE</span>
+    </div>`).join('');
+}
+function filterGoons() { renderGoons(); }
+
+// ── QUICK ADD ─────────────────────────────────────────────────────────────────
+async function quickAdd() {
+  const inp = document.getElementById('qa');
+  const u = inp.value.trim().replace('@','').toLowerCase(); if(!u) return;
+  inp.value = '';
+  try {
+    const result = await authFetch('/api/goons','POST',{username:u,added_by:currentUser?.display});
+    addFeed('💀',`GOON ADDED: @${u}`,'threat');
+    addActivity(`Added @${u}`,'block');
+    // Reload from server to get accurate count
+    await loadGoons();
+  } catch(e) {
+    // Add locally if server fails
+    if(!goons.includes(u)) { goons.push(u); updateVault(); }
+    addFeed('💀',`GOON ADDED (local): @${u}`,'threat');
+    addActivity(`Added @${u}`,'block');
+    console.error('Add goon error:', e);
+  }
+}
+
+// ── MOD ACTIONS ───────────────────────────────────────────────────────────────
+async function modBlock() {
+  const u = document.getElementById('bi').value.trim().replace('@',''); if(!u) return;
+  document.getElementById('bi').value = '';
+  try { await authFetch('/api/block','POST',{username:u,reason:'manual'}); } catch {}
+  kills++; document.getElementById('kills').textContent=kills; document.getElementById('s-blocked').textContent=kills;
+  addFeed('🚫',`BLOCK: @${u}`,'threat'); addActivity(`BLOCKED @${u}`,'block');
+}
+function modVouch() {
+  const u=document.getElementById('vi').value.trim().replace('@',''); if(!u) return;
+  document.getElementById('vi').value='';
+  addFeed('✅',`VOUCHED: @${u}`,'kill'); addActivity(`Vouched @${u}`,'vouch');
+}
+function modReport() {
+  const u=document.getElementById('ri').value.trim().replace('@',''); if(!u) return;
+  document.getElementById('ri').value='';
+  addFeed('🚨',`REPORT A-S: @${u}`,'threat'); addActivity(`Reported @${u}`,'block');
+}
+
+// ── MOBILE DRAWER ─────────────────────────────────────────────────────────────
+const DCFG = {
+  block:{ph:'@username to BLOCK',cls:'r'},
+  vouch:{ph:'@username to VOUCH',cls:'g'},
+  add:{ph:'@username to ADD to vault',cls:'a'},
+  eyes:{ph:'@username — CWIS locks on',cls:'c'},
+  report:{ph:'@username to REPORT',cls:'p'}
+};
+function openDrawer(mode) {
+  const d=document.getElementById('drawer');
+  const inp=document.getElementById('dinp');
+  const btn=document.getElementById('dbtn');
+  if(drawerMode===mode && d.classList.contains('open')) { d.classList.remove('open'); drawerMode=null; return; }
+  drawerMode=mode;
+  inp.placeholder=DCFG[mode].ph;
+  btn.className=`btn ${DCFG[mode].cls}`;
+  d.classList.add('open'); inp.value=''; inp.focus();
+}
+async function drawerAction() {
+  const u = document.getElementById('dinp').value.trim().replace('@','').toLowerCase();
+  if(!u) return;
+  document.getElementById('dinp').value = '';
+  document.getElementById('drawer').classList.remove('open');
+  const mode = drawerMode; drawerMode = null;
+  try {
+    if(mode === 'block') {
+      await authFetch('/api/block', 'POST', {username: u, reason: 'mobile_manual'});
+      kills++;
+      document.getElementById('kills').textContent = kills;
+      document.getElementById('s-blocked').textContent = kills;
+      addFeed('🚫', `BLOCK: @${u}`, 'threat');
+      addActivity(`BLOCKED @${u}`, 'block');
+    } else if(mode === 'vouch') {
+      addFeed('✅', `VOUCHED: @${u}`, 'kill');
+      addActivity(`Vouched @${u}`, 'vouch');
+    } else if(mode === 'add' || mode === 'eyes') {
+      await authFetch('/api/goons', 'POST', {username: u, reason: mode === 'eyes' ? 'VOICE_LOCK' : 'manual'});
+      addFeed(mode === 'eyes' ? '🎯' : '💀', `${mode === 'eyes' ? 'EYES ON' : 'GOON ADDED'}: @${u}`, mode === 'eyes' ? 'kill' : 'threat');
+      addActivity(`${mode === 'eyes' ? 'Eyes on' : 'Added'} @${u}`, 'block');
+    } else if(mode === 'report') {
+      addFeed('🚨', `REPORT: @${u}`, 'threat');
+      addActivity(`Reported @${u}`, 'block');
+    }
+    // Always sync vault from server after action
+    await loadGoons();
+  } catch(e) {
+    addFeed('⚠️', `PUSH FAILED: @${u} — ${e.message}`, 'threat');
+  }
+}
+
+// ── SPECTOR ───────────────────────────────────────────────────────────────────
+function spectorScan() {
+  const u=document.getElementById('si').value.trim().replace('@',''); if(!u) return;
+  document.getElementById('sresult').innerHTML=`<span style="color:var(--cyan)">Scanning @${esc(u)}...</span>`;
+  setTimeout(()=>{
+    document.getElementById('sresult').innerHTML=`<div style="color:var(--white)">@${esc(u)}</div><div style="color:var(--dim);margin-top:4px">Pattern analysis complete</div>`;
+    if(!spectorProfiles.find(p=>p.username===u)) { spectorProfiles.unshift({username:u}); renderSpector(); }
+  },600);
+}
+function predictAlts() {
+  const u=document.getElementById('pi2').value.trim().replace('@',''); if(!u) return;
+  const base=u.replace(/[0-9_\.]+$/,'');
+  const alts=['2','3','_2','_back','2026','_alt','_real','_v2','_official'].map(s=>base+s);
+  document.getElementById('presult').innerHTML=alts.map(a=>`<div style="color:var(--cyan);padding:1px 0">@${esc(a)}</div>`).join('');
+}
+function renderSpector() {
+  document.getElementById('sprofiles').innerHTML=spectorProfiles.slice(0,50).map((p,i)=>`
+    <div class="gentry">
+      <div class="gavatar">👁</div>
+      <div style="flex:1"><div style="color:var(--cyan);font-size:11px">@${esc(p.username)}</div></div>
+      <button class="btn c" style="font-size:8px;padding:4px 7px;margin-right:4px" onclick="spectorAnalyze('${esc(p.username)}')">SCAN</button>
+      <button class="btn r" style="font-size:8px;padding:4px 7px" onclick="spectorProfiles.splice(${i},1);renderSpector()">✕</button>
+    </div>`).join('');
+}
+function spectorAnalyze(u) { sw('spector'); document.getElementById('si').value=u; spectorScan(); }
+
+// ── SCAN MODE ─────────────────────────────────────────────────────────────────
+function setScanMode(mode) {
+  scanMode=mode;
+  document.getElementById('sm-hostile').style.opacity=mode==='hostile'?'1':'0.4';
+  document.getElementById('sm-friendly').style.opacity=mode==='friendly'?'1':'0.4';
+  document.getElementById('scanmode-lbl').textContent=mode==='hostile'?'ADDING TO GOON VAULT':'ADDING TO WHITELIST';
+  document.getElementById('scanmode-lbl').style.color=mode==='hostile'?'var(--red)':'var(--green)';
+}
+
+// ── GOON INTEL ────────────────────────────────────────────────────────────────
+function handleDrop(e) { e.preventDefault(); document.getElementById('dz').classList.remove('dz'); handleFiles(e.dataTransfer.files); }
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const item={file:f,dataUrl:e.target.result,status:'pending',users:[]};
+      scanQueue.push(item); renderQueue(); scanImage(scanQueue.length-1);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+async function scanImage(idx) {
+  const item = scanQueue[idx];
+  const b64 = item.dataUrl.split(',')[1];
+  const mt = item.file.type || 'image/jpeg';
+  item.status = 'scanning'; renderQueue();
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mt, data: b64 } },
+            { type: 'text', text: 'Extract TikTok usernames from this screenshot. Return ONLY @usernames one per line.' }
+          ]
+        }]
+      })
+    });
+    const d = await resp.json();
+    if (d.error) throw new Error(d.error.message);
+    const text = d.content?.[0]?.text || '';
+    item.users = (text.match(/@[\w.]+/g) || []).map(u => u.replace('@', '').toLowerCase());
+    item.status = 'done';
+    item.result = item.users.length ? `${item.users.length} found` : 'none';
+    renderQueue();
+  } catch(e) {
+    item.status = 'error';
+    item.result = 'Vision API Failed';
+    console.error('Vision Error:', e);
+    renderQueue();
+  }
+}
+function renderQueue() {
+  document.getElementById('qc').textContent=scanQueue.length;
+  document.getElementById('sq').innerHTML=scanQueue.map((item,i)=>`
+    <div class="scancard">
+      <img class="scanimg" src="${item.dataUrl}">
+      <button onclick="scanQueue.splice(${i},1);renderQueue()" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(255,59,59,0.8);border:none;color:white;cursor:pointer;font-size:10px">✕</button>
+      <div class="scanst">${item.status==='pending'?'⏳':item.status==='scanning'?'🔍':item.status==='done'?'✅':'❌'} ${item.result||item.status}</div>
+    </div>`).join('');
+}
+async function addAllDetected() {
+  let added=0;
+  const all=[]; scanQueue.forEach(item=>(item.users||[]).forEach(u=>all.push(u)));
+  if(scanMode==='hostile') {
+    for(const u of all) { try{await authFetch('/api/goons','POST',{username:u});}catch{} if(!goons.includes(u)){goons.push(u);added++;} }
+    updateVault(); addFeed('💀',`Added ${added} to GOON VAULT`,'threat');
+  } else {
+    for(const u of all) { try{await authFetch('/api/whitelist','POST',{username:u});}catch{} added++; }
+    addFeed('✅',`Added ${added} to WHITELIST`,'kill');
+  }
+}
+function addHighThreat() { addAllDetected(); }
+function clearQueue() { scanQueue=[]; renderQueue(); }
+function parseBulk() {
+  const text=document.getElementById('bt').value;
+  const matches=[...new Set((text.match(/@[\w.]+/g)||[]).map(m=>m.replace('@','').toLowerCase()))];
+  document.getElementById('br').innerHTML=matches.length?`Found ${matches.length}:<br>`+matches.map(u=>`<span style="color:var(--cyan)">@${esc(u)}</span>`).join(' '):'No @usernames found';
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+async function exportEvidence() {
+  try {
+    const d=await authFetch('/api/evidence');
+    const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`aegis-evidence-${new Date().toISOString().substring(0,10)}.json`; a.click();
+    addFeed('📋',`Evidence exported: ${d.count} entries`,'kill');
+  } catch { addFeed('⚠️','Export failed','threat'); }
+}
+async function importFollowers() {
+  const text=document.getElementById('fl').value;
+  const followers=text.split('\n').map(l=>l.trim().replace('@','')).filter(Boolean);
+  if(!followers.length) return;
+  try {
+    await authFetch('/api/followers/import','POST',{followers});
+    document.getElementById('flr').textContent=`✅ Imported ${followers.length} followers`;
+    addFeed('✅',`Imported ${followers.length} followers to whitelist`,'kill');
+  } catch { document.getElementById('flr').textContent='❌ Import failed'; }
+}
+
+// ── AUTH FETCH ────────────────────────────────────────────────────────────────
+async function authFetch(path,method='GET',body=null) {
+  const opts={
+    method,
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':`Bearer ${token}`
+    },
+    mode: 'cors'
+  };
+  if(body) opts.body=JSON.stringify(body);
+  try {
+    const r=await fetch(API+path,opts);
+    if(r.status===401){
+      // Try to refresh token first
+      try {
+        const refresh = await fetch(API+'/api/auth/login', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({username:currentUser.username, password: sessionStorage.getItem('aegis_pw')})
+        });
+        if(refresh.ok) {
+          const d = await refresh.json();
+          token = d.token;
+          sessionStorage.setItem('aegis_token', token);
+          // Retry original request
+          opts.headers['Authorization'] = `Bearer ${token}`;
+          const retry = await fetch(API+path, opts);
+          if(!retry.ok) throw new Error(`HTTP ${retry.status}`);
+          return retry.json();
+        }
+      } catch {}
+      doLogout();
+      return;
+    }
+    if(!r.ok) {
+      const errText = await r.text();
+      console.error(`authFetch error ${r.status}:`, errText);
+      throw new Error(`HTTP ${r.status}: ${errText}`);
+    }
+    return r.json();
+  } catch(e) {
+    console.error('authFetch failed:', path, e.message);
+    throw e;
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login').style.display!=='none')doLogin();});
+document.getElementById('lbtn').addEventListener('click',doLogin);
+window.onload=()=>{
+  const t=sessionStorage.getItem('aegis_token');
+  const u=sessionStorage.getItem('aegis_user');
+  if(t&&u){token=t;currentUser=JSON.parse(u);bootApp();}
+  else document.getElementById('lu').focus();
+};
+</script>
+</body>
+</html>
