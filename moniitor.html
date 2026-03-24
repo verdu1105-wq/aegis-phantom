@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AEGIS PHANTOM | Tactical Monitor</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 20px; }
+        .header { border-bottom: 2px solid #00ff41; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .status-ok { color: #00ff41; animation: blink 1.5s infinite; }
+        .status-err { color: #ff2020; animation: blink 1.5s infinite; }
+        .feed { height: 500px; border: 1px solid #333; overflow-y: scroll; padding: 10px; background: #000; }
+        .entry { margin-bottom: 5px; border-bottom: 1px solid #111; padding: 5px; display: flex; align-items: flex-start; }
+        .time { color: #555; margin-right: 10px; font-size: 0.8em; min-width: 80px; }
+        .user { font-weight: bold; margin-right: 10px; min-width: 140px; }
+        .comment { color: #eee; }
+        /* Comment entries */
+        .entry.comment .user { color: #00cfff; }
+        /* Intel entries */
+        .entry.intel { background: #0a0a00; border-left: 3px solid #ffd700; }
+        .entry.intel .user { color: #ffd700; }
+        .entry.intel .comment { color: #ffe066; }
+        .intel-badge { background: #ffd700; color: #000; font-size: 0.7em; font-weight: bold; padding: 1px 5px; margin-right: 8px; border-radius: 2px; }
+        .goon .user { color: #ff2020 !important; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .stats { font-size: 0.75em; color: #555; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1 style="margin:0;">AEGIS PHANTOM v3</h1>
+            <small>TARGET: <span style="color:#ffd700;">@cavalryspice</span></small>
+            <div class="stats">COMMENTS: <span id="commentCount">0</span> &nbsp;|&nbsp; INTEL REPORTS: <span id="intelCount">0</span></div>
+        </div>
+        <div id="connectionStatus" class="status-ok">● CLOUD LINK ESTABLISHED</div>
+    </div>
+
+    <div class="feed" id="liveFeed">
+        <div class="entry"><span class="time">SYSTEM</span><span class="comment">Awaiting data from @cavalryspice...</span></div>
+    </div>
+
+    <script>
+        const CLOUD_WS = "wss://aegis-phantom-974184310088.us-east1.run.app/ws/dashboard";
+        const feed = document.getElementById('liveFeed');
+        const status = document.getElementById('connectionStatus');
+        let commentCount = 0;
+        let intelCount = 0;
+        let reconnectTimer = null;
+
+        function connect() {
+            const socket = new WebSocket(CLOUD_WS);
+
+            socket.onopen = () => {
+                status.innerHTML = "● CLOUD LINK ACTIVE";
+                status.className = "status-ok";
+                if (reconnectTimer) clearInterval(reconnectTimer);
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "ping") return;
+
+                const entry = document.createElement('div');
+                const time = new Date().toLocaleTimeString();
+
+                if (data.type === "intel") {
+                    intelCount++;
+                    document.getElementById('intelCount').textContent = intelCount;
+                    entry.className = 'entry intel';
+                    entry.innerHTML = `
+                        <span class="time">${time}</span>
+                        <span class="user"><span class="intel-badge">MOLE</span>@${data.burner_id}</span>
+                        <span class="comment">[${data.intel_type}] ${data.message}</span>
+                    `;
+                } else {
+                    commentCount++;
+                    document.getElementById('commentCount').textContent = commentCount;
+                    entry.className = 'entry comment';
+                    entry.innerHTML = `
+                        <span class="time">${time}</span>
+                        <span class="user">@${data.username}</span>
+                        <span class="comment">${data.comment}</span>
+                    `;
+                }
+
+                feed.prepend(entry);
+            };
+
+            socket.onclose = () => {
+                status.innerHTML = "○ LINK SEVERED - RECONNECTING...";
+                status.className = "status-err";
+                reconnectTimer = setTimeout(connect, 3000);
+            };
+
+            socket.onerror = () => {
+                socket.close();
+            };
+        }
+
+        connect();
+    </script>
+</body>
+</html>
