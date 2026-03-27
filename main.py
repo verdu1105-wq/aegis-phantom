@@ -1,4 +1,4 @@
-"""
+﻿"""
 AEGIS PHANTOM — SECURE CLOUD RUN BACKEND v4
 JWT Authentication + Role-Based Access Control
 All secrets server-side only — zero client exposure
@@ -303,7 +303,7 @@ async def vision_scan(request: Request, user: dict = Depends(get_current_user)):
                     "anthropic-version": "2023-06-01",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-haiku-4-5-20251001",
                     "max_tokens": 500,
                     "messages": [{
                         "role": "user",

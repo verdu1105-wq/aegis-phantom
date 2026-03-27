@@ -1,0 +1,42 @@
+const express = require('express');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+
+// 1. Point specifically to the 'public' folder
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
+app.use(express.json());
+
+// 2. THE MANUAL OVERRIDE: If anyone hits the URL, give them index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(publicPath, 'index.html'));
+});
+
+// 3. The Recon Logic
+app.post('/api/recon', (req, res) => {
+    const targetUrl = req.body.url;
+    console.log(`\n📲 REMOTE COMMAND: Requesting scan for ${targetUrl}`);
+
+    exec(`node phantom_recon.mjs ${targetUrl}`, (error, stdout) => {
+        if (error) return res.status(500).json({ error: error.message });
+
+        const files = fs.readdirSync('.').filter(f => f.startsWith('intel_')).sort().reverse();
+        const latestFile = files[0];
+        
+        if (latestFile) {
+            const content = fs.readFileSync(latestFile, 'utf8');
+            const nickname = content.match(/"nickname":"(.*?)"/)?.[1] || "Unknown";
+            const bio = content.match(/"signature":"(.*?)"/)?.[1] || "None";
+            res.json({ status: 'Success', nickname, bio, file: latestFile });
+        } else {
+            res.json({ status: 'Error', message: 'No file generated.' });
+        }
+    });
+});
+
+app.listen(5000, () => {
+    console.log(`\n🛡️  AEGIS BRIDGE ACTIVE`);
+    console.log(`📂 SERVING FROM: ${publicPath}`);
+});

