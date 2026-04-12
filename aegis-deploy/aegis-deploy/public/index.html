@@ -1079,6 +1079,76 @@ footer{
   </div>
 </section>
 
+
+<!-- CREATOR MODE -->
+<section id="creator" style="background:var(--dark);border-top:1px solid var(--border)">
+  <div style="padding:6rem 3rem">
+    <div class="section-tag">Creator Mode — Intelligence for Content</div>
+    <div class="section-title reveal">Turn Threats Into<br><span style="color:var(--gold)">Content</span></div>
+    <p class="section-lead reveal">The same intelligence SENTRY delivers to security teams — translated into talking points, scripts, and angles that mainstream media misses. For creators covering cyber, energy, geopolitics, and economic security.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:2rem" class="reveal">
+
+      <!-- FREE BRIEF PREVIEW -->
+      <div style="background:var(--panel);padding:2rem">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">Live brief — free preview</div>
+        <div id="creator-brief-container">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--gold);display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1.2s infinite;display:inline-block"></span>
+            Generating brief from latest KEV alert...
+          </div>
+          <div id="creator-hook" style="font-size:1rem;color:var(--text);font-weight:500;line-height:1.5;margin-bottom:1rem;min-height:48px"></div>
+          <div id="creator-teaser" style="font-size:0.85rem;color:#b8bdd4;line-height:1.7;padding:1rem;background:var(--dark2);border-left:3px solid var(--gold);margin-bottom:1.5rem;min-height:60px"></div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.25rem">Locked in full brief</div>
+            <div id="creator-locked-items"></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-primary" onclick="loadNextBrief()" style="font-size:0.65rem;padding:8px 16px">Next alert ↗</button>
+            <a href="#pricing" class="btn-outline" style="font-size:0.65rem;padding:8px 16px">Unlock full brief</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBSCRIPTION PREVIEW -->
+      <div style="background:var(--dark2);padding:2rem;border-left:2px solid var(--gold)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem">Subscription — what you unlock</div>
+        
+        <div style="margin-bottom:1.5rem">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--accent);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.08em">What media missed</div>
+          <div style="font-size:0.82rem;color:#b8bdd4;line-height:1.6;font-style:italic">The angle mainstream news overlooked. Why this vulnerability matters beyond the patch notice. The real-world impact most people don't understand...</div>
+          <div style="font-size:0.72rem;color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-top:0.5rem">[ subscribers only ]</div>
+        </div>
+
+        <div style="margin-bottom:1.5rem">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--accent);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.08em">60-second script</div>
+          <div style="font-size:0.82rem;color:#b8bdd4;line-height:1.6;font-style:italic">Ready to read on camera. Opens with your hook, explains what happened in plain language, connects to real-world impact, ends with a question your audience will want answered...</div>
+          <div style="font-size:0.72rem;color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-top:0.5rem">[ subscribers only ]</div>
+        </div>
+
+        <div style="margin-bottom:1.5rem">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--gold);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.08em">Energy & fuel price connection</div>
+          <div style="font-size:0.82rem;color:#b8bdd4;line-height:1.6;font-style:italic">When a threat connects to oil infrastructure, supply chain, or consumer prices — SENTRY flags the cascade. Your audience pays $4 at the pump. They want to know why...</div>
+          <div style="font-size:0.72rem;color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-top:0.5rem">[ subscribers only ]</div>
+        </div>
+
+        <div style="background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--gold);padding:1.25rem;margin-top:1.5rem">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Creator subscription</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.04em;color:var(--text)">$29<span style="font-size:1rem;color:var(--muted)">/month</span></div>
+          <div style="font-size:0.78rem;color:#b4bbd0;margin-bottom:1rem">or $249/year — save two months</div>
+          <a href="#pricing" class="btn-primary" style="display:inline-block;font-size:0.65rem;padding:8px 20px">Subscribe ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOPIC CLUSTERS -->
+    <div class="reveal">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">Content topic clusters — from live zero-day feed</div>
+      <div id="topic-clusters" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--border);border:1px solid var(--border)"></div>
+    </div>
+  </div>
+</section>
+
 <!-- DEEP6 -->
 <section id="deep6" class="deep6-section">
   <div class="section-tag">Deep6 — Licensed Platform</div>
@@ -1709,9 +1779,170 @@ document.querySelectorAll('.alert-card').forEach((card, i) => {
 });
 
 // ── FEED ITEM CLICK ───────────────────────────────────────────────────────
-document.querySelectorAll('.feed-item').forEach(item => {
+const FEED_DATA = [{"scenario": "IRN-05", "text": "@CyberAv3ngers_official claiming access to water treatment facility control systems", "actor": "CyberAv3ngers — IRGC-affiliated", "ttp": "OT/ICS intrusion claim — HMI access announcement", "score": "91%"}, {"scenario": "IRN-01", "text": "Hackers of Mujahideen DDoS tool deployed — 1.2Tbps against hosting infrastructure", "actor": "Iran-affiliated hacktivists", "ttp": "DDoS coordination via Telegram — corroborated", "score": "87%"}, {"scenario": "IRN-05", "text": "CISA Advisory AA26-098A — Iranian IRGC actors targeting water/wastewater HMI devices", "actor": "IRGC-affiliated operators", "ttp": "OT/ICS intrusion — HMI exploitation — corroborated government advisory", "score": "95%"}, {"scenario": "AZR-01", "text": "CISA KEV CVE-2024-48887 Fortinet FortiSwitch CVSS 9.3 — unauthenticated password change", "actor": "Unknown — actively exploited in the wild", "ttp": "Authentication bypass — network accessible — no privileges required", "score": "88"}, {"scenario": "IRN-02", "text": "Large-scale spearphishing against cloud provider staff — AWS Middle East outage lures", "actor": "Unknown medium-confidence — credential harvest campaign", "ttp": "Spearphishing — credential theft — outage-themed lures", "score": "74%"}];
+
+document.querySelectorAll('.feed-item').forEach((item, i) => {
   item.style.cursor = 'pointer';
+  const data = FEED_DATA[i];
+  if (!data) return;
+
+  // Add analysis row after each feed item
+  const analysisRow = document.createElement('div');
+  analysisRow.className = 'alert-analysis-row';
+  analysisRow.style.cssText = 'padding:0.75rem 1.25rem;border-top:1px solid var(--border);background:rgba(0,0,0,0.2);display:none;';
+  analysisRow.innerHTML = '<div class="alert-analysis-text" style="font-size:0.8rem;color:#eef0ff;line-height:1.7;white-space:pre-wrap"></div>';
+  item.insertAdjacentElement('afterend', analysisRow);
+
+  item.addEventListener('click', function() {
+    const isOpen = analysisRow.style.display === 'block';
+    if (isOpen) {
+      analysisRow.style.display = 'none';
+      return;
+    }
+    analysisRow.style.display = 'block';
+    const textEl = analysisRow.querySelector('.alert-analysis-text');
+    if (textEl.textContent.trim()) return; // already analyzed
+
+    textEl.textContent = '';
+    textEl.classList.add('ai-typing');
+
+    const prompt = `You are SENTRY, the Aegis threat intelligence AI with a background similar to Cisco Talos.
+
+Scenario: ${data.scenario}
+Signal: ${data.text}
+Actor: ${data.actor}
+TTP: ${data.ttp}
+Relevance score: ${data.score}
+
+Provide a 3-sentence tactical assessment: (1) Signal credibility — real, noise, or disinfo? (2) TTP match to active Iran scenarios. (3) Recommended analyst action. Be direct, no preamble.`;
+
+    streamClaude(prompt,
+      chunk => { textEl.textContent += chunk; },
+      status => {
+        textEl.classList.remove('ai-typing');
+        if (status === 'error') textEl.textContent = 'Analysis unavailable.';
+      }
+    );
+  });
 });
+
+// ── CREATOR MODE ──────────────────────────────────────────────────────────────
+let creatorAlertQueue = [];
+let creatorCurrentIndex = 0;
+
+async function initCreatorMode() {
+  try {
+    const endpoint = AEGIS_PROD
+      ? AEGIS_PROXY_URL.replace('/intelligence', '/creator/feed?min_score=60&limit=20')
+      : 'https://aegis-cwis-974184310088.us-east1.run.app/api/creator/feed?min_score=60&limit=20';
+
+    const res = await fetch(endpoint);
+    const data = await res.json();
+    creatorAlertQueue = data.items || [];
+
+    if (creatorAlertQueue.length > 0) {
+      loadCreatorBrief(creatorAlertQueue[0]);
+      loadTopicClusters();
+    }
+  } catch(e) {
+    document.getElementById('creator-hook').textContent = 'Brief engine loading...';
+  }
+}
+
+async function loadCreatorBrief(alertMeta) {
+  const hookEl   = document.getElementById('creator-hook');
+  const teaserEl = document.getElementById('creator-teaser');
+  const lockedEl = document.getElementById('creator-locked-items');
+
+  hookEl.textContent   = 'Generating brief...';
+  teaserEl.textContent = '';
+  lockedEl.innerHTML   = '';
+
+  try {
+    const cveId = alertMeta.cve_id;
+    const endpoint = AEGIS_PROD
+      ? AEGIS_PROXY_URL.replace('/intelligence', `/creator/brief/${cveId}?tier=free`)
+      : `https://aegis-cwis-974184310088.us-east1.run.app/api/creator/brief/${cveId}?tier=free`;
+
+    const res = await fetch(endpoint);
+    const brief = await res.json();
+
+    hookEl.textContent   = brief.hook || 'Brief unavailable';
+    teaserEl.textContent = brief.teaser_point || '';
+
+    const locked = brief.preview_locked || [];
+    lockedEl.innerHTML = locked.map(item =>
+      `<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--dim);
+       display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:0.5px solid var(--border)">
+       <span style="color:var(--accent);font-size:0.6rem">▪</span>${item}
+       <span style="margin-left:auto;font-size:0.55rem;color:var(--dim);border:1px solid var(--dim);
+       padding:1px 6px;border-radius:2px">locked</span></div>`
+    ).join('');
+
+    const urgencyColors = {immediate:'var(--accent)', this_week:'var(--gold)', this_month:'var(--muted)'};
+    const urgency = brief.urgency || 'this_week';
+    const urgencyEl = document.createElement('div');
+    urgencyEl.style.cssText = `font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+      letter-spacing:0.1em;text-transform:uppercase;color:${urgencyColors[urgency]};
+      margin-bottom:0.75rem;margin-top:0.5rem`;
+    urgencyEl.textContent = `Urgency: ${urgency.replace('_',' ')} — ${alertMeta.vendor || ''} ${alertMeta.product || ''}`;
+    hookEl.parentNode.insertBefore(urgencyEl, hookEl);
+
+  } catch(e) {
+    hookEl.textContent = 'Brief generation unavailable — check back shortly.';
+  }
+}
+
+function loadNextBrief() {
+  creatorCurrentIndex = (creatorCurrentIndex + 1) % creatorAlertQueue.length;
+  const hookEl = document.getElementById('creator-hook');
+  const oldUrgency = hookEl.parentNode.querySelector('[style*="text-transform:uppercase"]');
+  if (oldUrgency && oldUrgency !== hookEl) oldUrgency.remove();
+  loadCreatorBrief(creatorAlertQueue[creatorCurrentIndex]);
+}
+
+async function loadTopicClusters() {
+  try {
+    const endpoint = AEGIS_PROD
+      ? AEGIS_PROXY_URL.replace('/intelligence', '/creator/topics')
+      : 'https://aegis-cwis-974184310088.us-east1.run.app/api/creator/topics';
+
+    const res = await fetch(endpoint);
+    const data = await res.json();
+    const container = document.getElementById('topic-clusters');
+    if (!container) return;
+
+    const topics = data.topics || [];
+    container.innerHTML = topics.map(t =>
+      `<div style="background:var(--panel);padding:1.25rem;transition:background 0.2s;cursor:pointer"
+            onmouseover="this.style.background='var(--dark3)'"
+            onmouseout="this.style.background='var(--panel)'">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;
+             text-transform:uppercase;color:var(--gold);margin-bottom:0.5rem">${t.name}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.04em;
+             color:var(--text)">${t.count}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:0.25rem">active alerts</div>
+        ${t.locked ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;
+          color:var(--dim);margin-top:0.5rem;border-top:0.5px solid var(--border);padding-top:0.5rem">
+          Subscribe to see top CVEs</div>` : ''}
+      </div>`
+    ).join('');
+  } catch(e) {}
+}
+
+// Init on scroll into view
+const creatorObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      initCreatorMode();
+      creatorObserver.disconnect();
+    }
+  });
+}, {threshold: 0.1});
+
+const creatorSection = document.getElementById('creator');
+if (creatorSection) creatorObserver.observe(creatorSection);
+
 </script>
 </body>
 </html>

@@ -16,6 +16,7 @@ import httpx
 import redis as redis_lib
 import jwt
 from dotenv import load_dotenv
+from creator_mode import creator_router
 from zeroday_monitor import zeroday_router
 load_dotenv()
 # --- CONFIG ---
@@ -59,6 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(zeroday_router)
+app.include_router(creator_router)
 security = HTTPBearer(auto_error=False)
 # --- JWT HELPERS ---
 def create_token(username: str, role: str, display: str) -> str:
