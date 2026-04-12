@@ -1,0 +1,2294 @@
+[
+  {
+    "scenario_id": "IRN-01",
+    "title": "DDoS against public-facing tech platforms and customer portals",
+    "family": "sdos",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "telecom",
+        "saas",
+        "hosting",
+        "dns_providers"
+      ],
+      "geography": [
+        "global",
+        "United States",
+        "Europe",
+        "Middle East"
+      ],
+      "assets": [
+        "Public websites and customer portals",
+        "API endpoints and login services",
+        "VPN concentrators",
+        "DNS infrastructure",
+        "CDN and WAF layers",
+        "Content delivery networks"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-affiliated hacktivists and state-aligned operators",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Immediate geopolitical signaling",
+        "Retaliation for sanctions or military action",
+        "Public disruption for media attention",
+        "Demonstrate offensive capability"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "SaaS providers with high public visibility",
+        "Telecom operators and hosting firms",
+        "Consumer platforms with large user bases",
+        "DNS-dependent services"
+      ],
+      "secondary": [
+        "CDN providers serving targeted platforms",
+        "API gateway infrastructure",
+        "Authentication and login endpoints"
+      ],
+      "high_value_conditions": [
+        "Organization publicly associated with US or Israeli government contracts",
+        "Platform with high media visibility creating amplification value",
+        "Service with known DDoS mitigation gaps or CDN single points of failure",
+        "DNS infrastructure without anycast redundancy"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation event involving Iran and Western or Gulf state actors",
+      "US or allied military action against Iranian assets",
+      "New sanctions package targeting Iranian government or IRGC",
+      "Public attribution of Iranian cyber operation by US government",
+      "Anniversary of significant geopolitical event"
+    ],
+    "attack_path": [
+      "Hacktivist coordination via Telegram channels \u2014 target list published, tool distributed",
+      "Botnet traffic floods against websites, APIs, and login endpoints",
+      "VPN concentrators and DNS-exposed services targeted for amplification",
+      "Rotating IP ranges bypass simple blocklist defenses",
+      "Coordinated claims posted on Telegram and X to maximize media attention",
+      "DDoS sustained until media coverage achieved or defender mitigates"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Volumetric traffic spike \u2014 10x or greater above baseline",
+        "Repeated requests from rotating IP ranges across multiple ASNs",
+        "Degraded CDN and WAF performance metrics",
+        "DNS query flood against authoritative resolvers",
+        "SYN flood patterns against TCP services",
+        "UDP amplification traffic from reflection sources"
+      ],
+      "behavioral": [
+        "Customer-facing services returning 503 or timing out",
+        "CDN edge nodes reaching capacity limits",
+        "WAF rate limiting triggering at scale",
+        "Support ticket volume surge from customers reporting outages",
+        "Engineering team escalation outside normal hours"
+      ],
+      "external": [
+        "Coordinated DDoS claims on Telegram channels linked to Iran-affiliated hacktivists",
+        "X/Twitter posts from hacktivist personas announcing operation",
+        "Target lists published in hacktivist forums matching affected organizations",
+        "Threat intelligence reporting on active Iran-affiliated DDoS campaign",
+        "CISA or sector ISAC advisory on ongoing volumetric attack campaign"
+      ]
+    },
+    "impact": {
+      "likelihood": "high",
+      "severity": "medium",
+      "business_effects": [
+        "Service outages affecting customer-facing platforms",
+        "Lost transactions during outage window",
+        "Support team surge and emergency engineering costs",
+        "Reputational pressure from public outage visibility",
+        "SLA breach obligations to enterprise customers"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor Telegram and X for Iran-affiliated hacktivist DDoS announcements targeting sector",
+        "Alert on volumetric traffic anomalies exceeding 5x baseline",
+        "Track coordinated claims that name specific organizations as targets",
+        "Correlate attack timing with geopolitical escalation events"
+      ],
+      "sentry": [
+        "Open case on confirmed DDoS campaign \u2014 link to hacktivist group and claimed targets",
+        "Collect traffic telemetry, CDN logs, and WAF block reports",
+        "Document claim posts with timestamps for post-incident attribution",
+        "Track attack duration and intensity for insurance and legal purposes"
+      ],
+      "command": [
+        "Activate DDoS operational view \u2014 show affected services, mitigation status, and customer impact",
+        "Coordinate crisis communications from unified command",
+        "Track CDN failover and scrubbing center activation status",
+        "Manage executive and customer communication cadence"
+      ],
+      "core": [
+        "Emit sdos.volumetric_attack event on confirmed DDoS",
+        "Feed attacker IP ranges into PHANTOM real-time block list",
+        "Trigger DDoS runbook activation workflow",
+        "Update threat posture score for affected organizations"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "iran_ddos_watch",
+      "sentry_case_type": "sdos_iran_affiliated",
+      "command_view": "ddos_ops",
+      "core_event_types": [
+        "sdos.volumetric_attack",
+        "sdos.dns_flood",
+        "sdos.hacktivist_claim"
+      ]
+    },
+    "confidence": 0.82,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA advisories on Iran-affiliated DDoS activity 2023-2026",
+      "Mandiant and CrowdStrike reporting on Iran hacktivist operations",
+      "FBI and CISA joint advisories on Iranian cyber threats to critical infrastructure"
+    ]
+  },
+  {
+    "scenario_id": "IRN-02",
+    "title": "Hack-and-leak campaign against a technology company",
+    "family": "hack_and_leak",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "ai_ml",
+        "cloud_providers",
+        "software_vendors",
+        "defense_adjacent"
+      ],
+      "geography": [
+        "United States",
+        "Israel",
+        "Europe",
+        "global"
+      ],
+      "assets": [
+        "Executive email accounts",
+        "Corporate file stores and SharePoint",
+        "Source code repositories",
+        "Customer data stores",
+        "Internal communications platforms",
+        "Cloud storage buckets"
+      ]
+    },
+    "threat_actor": {
+      "label": "APT35 and APT42-style operators \u2014 Iran IRGC Intelligence Organization",
+      "attribution": "high_confidence",
+      "motives": [
+        "Embarrassment and reputational damage to target",
+        "Coercion of leadership or customers",
+        "Influence operations using leaked material",
+        "Intelligence collection as secondary objective"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Cloud providers with US government or defense contracts",
+        "AI research firms with dual-use technology",
+        "Software vendors supplying defense or intelligence community",
+        "Executive email and file stores at high-profile technology companies"
+      ],
+      "secondary": [
+        "Legal counsel and board members of primary targets",
+        "Investors and major customers of primary targets",
+        "Journalists covering primary target organizations"
+      ],
+      "high_value_conditions": [
+        "Organization with public political association or government ties",
+        "Executive who has publicly commented on Iran policy",
+        "Company with sensitive customer list including government agencies",
+        "Organization with recent public controversy that amplifies leak value"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation involving Iran",
+      "Public statement by company leadership critical of Iranian government",
+      "Organization awarded high-profile US government or defense contract",
+      "Iranian nuclear negotiations breakdown or related diplomatic event"
+    ],
+    "attack_path": [
+      "Spearphishing campaign targeting executives, IT administrators, and engineers",
+      "Credential theft via phishing page or MFA fatigue attack on target accounts",
+      "Token theft or OAuth grant abuse for persistent mailbox and drive access",
+      "Mailbox forwarding rules created to siphon ongoing communications",
+      "Large-scale archive download from SharePoint, OneDrive, and email stores",
+      "Data staged on attacker-controlled infrastructure for selective disclosure",
+      "Leak published via persona accounts with coordinated amplification on X and Telegram"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Suspicious OAuth application consent granted by privileged account",
+        "Impossible travel \u2014 authentication from two geographies within minutes",
+        "Mailbox forwarding rule created outside normal business hours",
+        "Bulk download from SharePoint or OneDrive not matching user work patterns",
+        "Archive or ZIP creation from file store followed by external transfer",
+        "New inbox rules deleting or moving security alert emails"
+      ],
+      "behavioral": [
+        "Executive reports not recognizing a successful sign-in event",
+        "Security alert emails missing from inbox post-compromise",
+        "Unfamiliar OAuth apps appearing in tenant app registrations",
+        "Large data transfers to unknown external destinations in audit logs",
+        "Extortion contact from actor threatening to publish stolen data"
+      ],
+      "external": [
+        "Leak announcement on Telegram or X from Iran-linked persona account",
+        "Sample documents published as proof-of-access with metadata inconsistencies",
+        "Journalist outreach from unknown contacts claiming to have company documents",
+        "Threat intelligence reporting on APT35 or APT42 targeting company sector",
+        "SENTRY Monitor: synchronized bot amplification of leak claims"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "high",
+      "business_effects": [
+        "Legal exposure from leaked confidential customer or business data",
+        "Customer churn following public disclosure of breach",
+        "Board and investor pressure demanding executive accountability",
+        "Regulatory investigation triggered by data exposure",
+        "Reputational damage amplified by media coverage of leak",
+        "Emergency legal and PR costs for response"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on impossible travel events for executive and privileged accounts",
+        "Monitor for new OAuth app consents by admin accounts",
+        "Flag mailbox forwarding rule creation within 60 minutes of authentication",
+        "Alert on bulk SharePoint or OneDrive downloads outside business hours",
+        "Monitor X and Telegram for leak claims referencing organization or sector"
+      ],
+      "sentry": [
+        "Open case on confirmed hack-and-leak \u2014 collect OAuth, mailbox, and download audit trail",
+        "Identify all accounts and data stores accessed in compromise window",
+        "Document leak claims and publication timeline for legal response",
+        "Coordinate with legal counsel on notification obligations",
+        "Preserve evidence chain for law enforcement referral"
+      ],
+      "command": [
+        "Activate hack-and-leak operational view \u2014 account compromise status and data exposure scope",
+        "Coordinate legal, PR, and security response from unified command",
+        "Track media coverage and amplification of leak claims",
+        "Manage customer and regulator notification sequencing"
+      ],
+      "core": [
+        "Emit hack_and_leak.credential_theft and hack_and_leak.exfiltration events",
+        "Trigger token revocation workflow for all compromised accounts",
+        "Feed attacker OAuth app IDs into PHANTOM block list",
+        "Update organizational risk score based on data exposure scope"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "apt35_apt42_watch",
+      "sentry_case_type": "hack_and_leak_iran",
+      "command_view": "leak_response_ops",
+      "core_event_types": [
+        "hack_and_leak.credential_theft",
+        "hack_and_leak.exfiltration",
+        "hack_and_leak.public_disclosure",
+        "identity.oauth_consent_anomaly"
+      ]
+    },
+    "confidence": 0.85,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "Google TAG and Mandiant reporting on APT35 and APT42 operations",
+      "Microsoft MSTIC reporting on Iranian threat actor credential theft campaigns",
+      "CISA and FBI joint advisories on Iranian government-sponsored cyber operations"
+    ]
+  },
+  {
+    "scenario_id": "IRN-03",
+    "title": "Long-dwell espionage in cloud and identity planes",
+    "family": "espionage",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "telecom",
+        "defense_adjacent",
+        "saas",
+        "msp",
+        "data_center"
+      ],
+      "geography": [
+        "United States",
+        "Middle East",
+        "Europe",
+        "Israel"
+      ],
+      "assets": [
+        "Microsoft 365 and Entra ID tenants",
+        "VPN and remote access infrastructure",
+        "Cloud management consoles",
+        "Managed service provider tooling",
+        "Enterprise SaaS platforms",
+        "Legacy authentication endpoints"
+      ]
+    },
+    "threat_actor": {
+      "label": "MuddyWater, APT34, and APT35-linked operators \u2014 Iran Ministry of Intelligence and IRGC",
+      "attribution": "high_confidence",
+      "motives": [
+        "Strategic intelligence collection for Iranian government",
+        "Pre-positioning for potential disruptive operations",
+        "Long-term access maintenance across target organizations",
+        "Supply chain access via MSP and SaaS provider compromise"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Defense-related technology firms",
+        "Telecom operators with government contracts",
+        "Managed service providers serving government or defense sectors",
+        "Enterprise SaaS platforms with sensitive customer data",
+        "Regional data center operators in Gulf states"
+      ],
+      "secondary": [
+        "Legal, financial, and consulting firms serving primary targets",
+        "Academic institutions with defense research programs",
+        "Think tanks and policy organizations"
+      ],
+      "high_value_conditions": [
+        "Organization serving US government, DoD, or intelligence community customers",
+        "MSP with administrative access to multiple high-value downstream environments",
+        "Telecom with access to communications metadata",
+        "SaaS platform storing sensitive government or defense customer data"
+      ]
+    },
+    "trigger_conditions": [
+      "Sustained Iranian strategic intelligence collection campaign",
+      "Iranian government prioritization of specific technology or policy sector",
+      "Access opportunity via newly discovered vulnerability in target infrastructure",
+      "Geopolitical event elevating intelligence collection priority"
+    ],
+    "attack_path": [
+      "Password spraying against O365, Entra ID, VPN, and Citrix endpoints",
+      "Phishing targeting IT administrators, engineers, and remote access users",
+      "Exploitation of public-facing applications \u2014 VPN appliances, web apps",
+      "Abuse of trusted cloud services for command and control \u2014 OneDrive, Google Drive",
+      "Persistence via legacy authentication protocols bypassing MFA",
+      "Anomalous admin role assignments to maintain elevated access",
+      "Covert tunneling through legitimate cloud services to avoid detection",
+      "Lateral movement across SaaS tenants using harvested credentials"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Legacy authentication protocol spikes \u2014 IMAP, POP3, SMTP auth against M365",
+        "Password spray pattern \u2014 distributed low-and-slow attempts across many accounts",
+        "Anomalous admin role assignment by non-standard principal",
+        "Unusual service principal creation or modification",
+        "Covert tunneling via cloud storage API \u2014 OneDrive, Dropbox, Google Drive",
+        "Persistence across multiple SaaS tenants from same credential set",
+        "VPN authentication from unusual geographies or ASNs"
+      ],
+      "behavioral": [
+        "IT administrator reports unexpected role changes or unfamiliar service principals",
+        "Security team detects impossible travel on privileged accounts",
+        "Anomalous data access patterns \u2014 reading files outside normal work scope",
+        "Cloud audit logs showing access from unexpected IP ranges",
+        "Conditional access policy bypass via legacy auth or token abuse"
+      ],
+      "external": [
+        "CISA or NSA advisory on MuddyWater or APT34 targeting specific sector",
+        "Threat intelligence on Iranian password spray campaign against target industry",
+        "FBI notification of Iranian intrusion activity against similar organizations",
+        "Peer organization disclosure of Iranian espionage intrusion",
+        "SENTRY Monitor: GitHub tooling associated with Iranian operators"
+      ]
+    },
+    "impact": {
+      "likelihood": "high",
+      "severity": "high",
+      "business_effects": [
+        "Silent long-term data loss \u2014 intellectual property and sensitive communications",
+        "Supply chain exposure through MSP or SaaS provider compromise",
+        "Pre-positioned access enabling future disruptive operations",
+        "Regulatory and contractual breach if government data accessed",
+        "Loss of competitive advantage from stolen strategic information"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on legacy authentication spikes against M365 and Exchange",
+        "Monitor for password spray patterns \u2014 distributed attempts below lockout threshold",
+        "Flag anomalous admin role assignments and service principal creation",
+        "Alert on cloud storage API usage patterns consistent with C2 tunneling",
+        "Monitor for impossible travel on privileged and administrative accounts"
+      ],
+      "sentry": [
+        "Open case on confirmed long-dwell access \u2014 establish compromise timeline",
+        "Identify all accounts, tenants, and data stores touched during dwell period",
+        "Map lateral movement across SaaS platforms and MSP tooling",
+        "Coordinate with affected downstream customers if MSP compromise confirmed",
+        "Preserve forensic evidence for law enforcement and regulatory disclosure"
+      ],
+      "command": [
+        "Activate espionage response operational view \u2014 dwell period and scope assessment",
+        "Track all accounts requiring remediation across affected tenants",
+        "Coordinate MSP customer notification if supply chain exposure confirmed",
+        "Manage classified and sensitive disclosure obligations"
+      ],
+      "core": [
+        "Emit espionage.long_dwell_access and espionage.lateral_movement events",
+        "Trigger conditional access policy hardening workflow",
+        "Disable legacy authentication protocols across affected tenants",
+        "Update MSP risk score and downstream customer exposure assessment"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "muddywater_apt34_watch",
+      "sentry_case_type": "espionage_long_dwell_iran",
+      "command_view": "espionage_response_ops",
+      "core_event_types": [
+        "espionage.long_dwell_access",
+        "espionage.lateral_movement",
+        "espionage.legacy_auth_abuse",
+        "espionage.c2_tunneling"
+      ]
+    },
+    "confidence": 0.88,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA advisory AA22-055A on MuddyWater Iranian government-sponsored actors",
+      "Microsoft MSTIC reporting on APT34 and PHOSPHORUS operations",
+      "NSA and CISA joint advisory on Iranian government-sponsored advanced persistent threat"
+    ]
+  },
+  {
+    "scenario_id": "IRN-04",
+    "title": "Ransomware-style intrusion with political messaging",
+    "family": "ransomware",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "healthcare",
+        "municipal_government",
+        "industrial",
+        "mid_market_enterprise"
+      ],
+      "geography": [
+        "United States",
+        "Israel",
+        "Albania",
+        "Europe"
+      ],
+      "assets": [
+        "Windows domain infrastructure",
+        "File servers and network shares",
+        "Backup systems",
+        "Database servers",
+        "Email systems",
+        "Edge and VPN appliances"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-affiliated actors including IRGC-linked groups and state-crime collaboration \u2014 DEV-0270, Agrius",
+      "attribution": "high_confidence",
+      "motives": [
+        "Operational disruption of target organization",
+        "Confusion and coercion masking intelligence collection",
+        "Cover for data theft under guise of ransomware",
+        "Geopolitical messaging via ideological ransom note"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Healthcare organizations with weak EDR coverage",
+        "Municipal governments and public sector entities",
+        "Industrial suppliers to defense or government sectors",
+        "Mid-market enterprises with under-resourced security teams"
+      ],
+      "secondary": [
+        "Organizations with known backup gaps or recovery weaknesses",
+        "Entities with public political associations making them symbolic targets",
+        "Companies in sectors subject to Iranian geopolitical grievances"
+      ],
+      "high_value_conditions": [
+        "Organization with no tested disaster recovery plan",
+        "Flat network with no east-west segmentation",
+        "Backup systems connected to production domain",
+        "EDR coverage gaps \u2014 unmanaged endpoints or legacy systems without agents"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation requiring Iranian retaliatory demonstration",
+      "Target organization publicly associated with US, Israeli, or Gulf state interests",
+      "Albanian or other state hosting of Iranian opposition group MEK",
+      "Iranian government seeking to demonstrate disruptive capability"
+    ],
+    "attack_path": [
+      "Initial access via phishing or exploitation of edge vulnerabilities \u2014 VPN, Exchange, RDP",
+      "Establish foothold and disable or tamper with security tooling",
+      "Credential dumping \u2014 LSASS, SAM database, domain controller extraction",
+      "Lateral movement via SMB, RDP, and WMI across domain",
+      "Data exfiltration prior to encryption \u2014 files, databases, email archives",
+      "Selective encryption or wiping \u2014 sometimes wiper deployed instead of ransomware",
+      "Ransom note with ideological messaging rather than standard criminal demand",
+      "Stolen data threatened for publication to amplify operational impact"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Credential dumping tools \u2014 Mimikatz, ProcDump against LSASS",
+        "Unusual SMB lateral movement across domain \u2014 new source to destination pairs",
+        "RDP connections from workstations to servers outside normal patterns",
+        "Mass file archiving \u2014 ZIP or RAR creation across file servers",
+        "Security tool tampering \u2014 AV disabled, EDR agent stopped or uninstalled",
+        "Volume shadow copy deletion \u2014 vssadmin delete shadows",
+        "Backup job failures or backup server access from unusual principals"
+      ],
+      "behavioral": [
+        "Ransom note or wiper message with ideological or political content",
+        "Multiple systems simultaneously unavailable across different business units",
+        "Domain controller inaccessible \u2014 authentication failures across organization",
+        "Backup restoration attempts failing \u2014 backup data encrypted or deleted",
+        "IT team reports unable to remote into systems across the environment"
+      ],
+      "external": [
+        "Iran-linked actor claim of responsibility on Telegram or X",
+        "Leak site posting of data stolen from target organization",
+        "FBI or CISA flash advisory on Iranian ransomware-style campaign",
+        "Peer organization in same sector reporting similar intrusion",
+        "Threat intelligence on DEV-0270 or Agrius targeting sector"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "high",
+      "business_effects": [
+        "Operational outage across affected systems for days to weeks",
+        "Recovery costs \u2014 IR firm, system rebuild, data restoration",
+        "Data breach notification obligations from exfiltrated data",
+        "Regulatory scrutiny in healthcare and government sectors",
+        "Reputational damage and customer trust erosion"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on credential dumping tool signatures \u2014 LSASS access, ProcDump",
+        "Monitor for mass file archiving activity across file servers",
+        "Alert on volume shadow copy deletion commands",
+        "Flag security tool tampering \u2014 AV and EDR agent stop events",
+        "Monitor backup system access from non-backup principals"
+      ],
+      "sentry": [
+        "Open critical incident case \u2014 activate ransomware response protocol",
+        "Engage IR firm immediately \u2014 preserve forensic evidence before remediation",
+        "Assess data exfiltration scope before focusing on recovery",
+        "Document ransom note and ideological messaging for attribution",
+        "Coordinate law enforcement notification \u2014 FBI field office"
+      ],
+      "command": [
+        "Activate ransomware incident operational view \u2014 affected systems and recovery status",
+        "Track containment progress \u2014 isolated vs still-connected systems",
+        "Coordinate executive, customer, and regulatory communications",
+        "Manage recovery sequencing \u2014 critical systems prioritized"
+      ],
+      "core": [
+        "Emit ransomware.encryption_event and ransomware.wiper_deployed events",
+        "Trigger network segmentation enforcement workflow",
+        "Activate offline backup assessment and restoration planning",
+        "Feed IOCs into PHANTOM real-time detection"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "iran_ransomware_watch",
+      "sentry_case_type": "ransomware_iran_affiliated",
+      "command_view": "ransomware_incident_ops",
+      "core_event_types": [
+        "ransomware.encryption_event",
+        "ransomware.wiper_deployed",
+        "ransomware.credential_dump",
+        "ransomware.lateral_movement"
+      ]
+    },
+    "confidence": 0.78,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "Microsoft MSTIC reporting on DEV-0270 Iranian ransomware operations",
+      "SentinelOne reporting on Agrius wiper and ransomware campaigns",
+      "CISA and FBI advisory on Iranian government-sponsored ransomware activity",
+      "Albania cyberattack attribution reporting 2022"
+    ]
+  },
+  {
+    "scenario_id": "IRN-05",
+    "title": "OT/ICS intrusion against water or energy operations",
+    "family": "ot_ics",
+    "status": "active",
+    "scope": {
+      "sector": [
+        "water_wastewater",
+        "energy",
+        "industrial",
+        "critical_infrastructure"
+      ],
+      "geography": [
+        "United States",
+        "Israel",
+        "Europe",
+        "Gulf states"
+      ],
+      "assets": [
+        "Internet-exposed HMI interfaces",
+        "Programmable Logic Controllers (PLCs)",
+        "SCADA systems",
+        "Remote access and VPN for OT networks",
+        "Engineering workstations",
+        "Historian servers"
+      ]
+    },
+    "threat_actor": {
+      "label": "IRGC-affiliated operators \u2014 CyberAv3ngers and linked activity",
+      "attribution": "confirmed",
+      "motives": [
+        "Localized physical disruption of water or energy infrastructure",
+        "Symbolic retaliation against Western or Israeli-linked targets",
+        "Public fear and media attention",
+        "Demonstration of capability to threaten critical infrastructure"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Water and wastewater treatment facilities with internet-exposed HMIs",
+        "Energy facilities using exposed remote access with default credentials",
+        "Industrial facilities using Unitronics or similar PLCs accessible via internet",
+        "Small to mid-size utilities with limited OT security resources"
+      ],
+      "secondary": [
+        "Larger utility operators with IT-OT convergence points",
+        "Engineering firms providing remote support to water or energy facilities",
+        "Supply chain vendors with remote access to OT environments"
+      ],
+      "high_value_conditions": [
+        "HMI or PLC directly internet-accessible without VPN",
+        "Default or weak credentials on remote access or PLC interface",
+        "IT and OT networks bridged without segmentation",
+        "No change monitoring or alerting on PLC configuration",
+        "Israeli-made or managed equipment creating symbolic target value"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation involving Iran and Israel or United States",
+      "Israeli military action in Gaza or Lebanon conflict escalation",
+      "US military action or sanctions targeting Iranian interests",
+      "IRGC leadership decision to demonstrate critical infrastructure reach"
+    ],
+    "attack_path": [
+      "Scan for internet-exposed HMI interfaces and PLC remote access ports",
+      "Exploit default credentials on Unitronics, Siemens, or other exposed PLCs",
+      "Access HMI via internet-exposed remote desktop or web interface",
+      "Modify PLC programming or set points to cause operational disruption",
+      "Deface HMI display with ideological messaging",
+      "Optionally pivot from IT network to OT via connected engineering workstations",
+      "Claim responsibility on Telegram with screenshots of HMI access"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Unexpected PLC mode changes \u2014 run to program mode transitions",
+        "HMI display changes inconsistent with operator activity",
+        "Unauthorized firmware or configuration changes on PLCs",
+        "Loss of view or loss of control alarms from field devices",
+        "Remote access sessions to OT network from unknown external IPs",
+        "Engineering workstation accessing PLC outside maintenance windows"
+      ],
+      "behavioral": [
+        "Operators report HMI showing unexpected values or foreign language messages",
+        "Physical process anomalies inconsistent with setpoint changes",
+        "Safety systems triggering without corresponding process event",
+        "Remote access logs showing connections outside normal maintenance schedules",
+        "PLC vendor remote support access not scheduled by internal team"
+      ],
+      "external": [
+        "CyberAv3ngers Telegram post claiming OT facility access with HMI screenshot",
+        "CISA advisory on Iranian actors targeting water sector HMI devices",
+        "FBI notification of Iranian scanning activity against water sector IP ranges",
+        "Peer utility reporting similar intrusion attempt or compromise",
+        "Shodan or Censys data showing organization HMI newly internet-exposed"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "very-high",
+      "business_effects": [
+        "Manual operations required \u2014 loss of automated process control",
+        "Service interruption for water or energy customers",
+        "Safety review and regulatory reporting obligations",
+        "Physical process disruption \u2014 chemical dosing, pressure, flow anomalies",
+        "Public fear and media attention amplifying operational impact",
+        "Extended recovery if PLC firmware corrupted or replaced"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor for CyberAv3ngers Telegram announcements targeting water or energy sector",
+        "Alert on remote access sessions to OT network from external IPs",
+        "Flag PLC mode changes or configuration modifications outside maintenance windows",
+        "Monitor Shodan and Censys for newly exposed HMI interfaces in sector",
+        "Alert on engineering workstation access to PLCs outside scheduled maintenance"
+      ],
+      "sentry": [
+        "Open critical OT incident case \u2014 notify CISA immediately per sector reporting requirements",
+        "Preserve PLC configuration backups and audit logs before any remediation",
+        "Engage ICS-specialized incident response firm",
+        "Document HMI screenshots and CyberAv3ngers claim posts for attribution",
+        "Coordinate with FBI and CISA on law enforcement response"
+      ],
+      "command": [
+        "Activate OT incident operational view \u2014 affected systems, manual operations status",
+        "Track safety system status and physical process parameters",
+        "Coordinate regulatory notification \u2014 EPA, NERC, state agencies",
+        "Manage public communications if service disruption affects customers"
+      ],
+      "core": [
+        "Emit ot_ics.hmi_compromise and ot_ics.plc_modification events",
+        "Trigger OT isolation workflow \u2014 remove affected systems from internet",
+        "Activate backup PLC configuration restoration procedure",
+        "Feed CyberAv3ngers IOCs into PHANTOM detection"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "cyberav3ngers_ot_watch",
+      "sentry_case_type": "ot_ics_iran_irgc",
+      "command_view": "ot_incident_ops",
+      "core_event_types": [
+        "ot_ics.hmi_compromise",
+        "ot_ics.plc_modification",
+        "ot_ics.remote_access_anomaly",
+        "ot_ics.loss_of_control"
+      ]
+    },
+    "confidence": 0.94,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA advisory AA23-335A on IRGC CyberAv3ngers targeting water sector PLCs",
+      "FBI and EPA joint advisory on Iranian actors targeting water systems",
+      "CISA advisory AA24-011A on Unitronics PLC exploitation by Iranian actors",
+      "Multiple confirmed CyberAv3ngers incidents at US water utilities 2023-2024"
+    ]
+  },
+  {
+    "scenario_id": "IRN-06",
+    "title": "Supply-chain compromise through MSPs or trusted vendors",
+    "family": "supply_chain",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "msp",
+        "software_integrators",
+        "telecom",
+        "infrastructure_contractors"
+      ],
+      "geography": [
+        "United States",
+        "Middle East",
+        "Europe",
+        "global"
+      ],
+      "assets": [
+        "MSP remote management and monitoring tooling",
+        "RMM platforms \u2014 ConnectWise, Kaseya, N-able",
+        "Vendor VPN and remote access credentials",
+        "Software build and deployment pipelines",
+        "Shared customer environment access",
+        "Vendor service account credentials"
+      ]
+    },
+    "threat_actor": {
+      "label": "Espionage-focused Iranian clusters \u2014 APT34, MuddyWater, and related operators",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Broad downstream access to multiple customer environments via single compromise",
+        "Stealth through trusted vendor relationships",
+        "Intelligence collection at scale across MSP customer base",
+        "Leverage trusted remote access channels to avoid detection"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Managed service providers with broad customer access",
+        "Software integrators with deployment access to customer environments",
+        "Telecom and infrastructure contractors with network access",
+        "IT outsourcing firms serving government or defense sector customers"
+      ],
+      "secondary": [
+        "Downstream MSP customers \u2014 especially government, defense, and critical infrastructure",
+        "Software vendors whose update pipeline the MSP manages",
+        "Cloud providers with MSP partner access programs"
+      ],
+      "high_value_conditions": [
+        "MSP managing 50 or more customer environments with admin access",
+        "MSP serving government, defense, or critical infrastructure customers",
+        "Vendor with standing remote access credentials to customer production systems",
+        "Software integrator with code signing certificates or deployment pipeline access"
+      ]
+    },
+    "trigger_conditions": [
+      "Iranian strategic intelligence collection campaign targeting specific industry sector",
+      "Discovery of MSP with access to high-value downstream customers",
+      "Opportunity via phishing of MSP technical staff",
+      "Exploitation of RMM platform vulnerability creating access opportunity"
+    ],
+    "attack_path": [
+      "Compromise MSP credentials via phishing or credential stuffing against RMM platform",
+      "Authenticate to RMM platform using stolen MSP technician credentials",
+      "Enumerate MSP customer list and assess downstream access scope",
+      "Pivot through remote administration channels into customer environments",
+      "Establish persistence in customer environments using legitimate MSP tooling",
+      "Collect intelligence from customer environments \u2014 email, files, credentials",
+      "Maintain access across multiple customers simultaneously using MSP tooling cover"
+    ],
+    "indicators": {
+      "telemetry": [
+        "RMM platform access outside normal maintenance windows or business hours",
+        "Concurrent RMM sessions across multiple customer environments from single technician account",
+        "Vendor service account accessing customer systems from unexpected IP or geography",
+        "New scripts or tools deployed via RMM platform to customer systems",
+        "MSP technician account authentication from multiple geographies simultaneously"
+      ],
+      "behavioral": [
+        "Customer systems show activity attributed to vendor account outside scheduled maintenance",
+        "MSP reports technician credentials used without their knowledge",
+        "Multiple customers reporting similar anomalous activity traced to same vendor account",
+        "RMM audit logs showing bulk customer environment enumeration"
+      ],
+      "external": [
+        "Threat intelligence on Iranian actors targeting RMM platforms or MSP sector",
+        "CISA advisory on supply chain compromise via managed service providers",
+        "MSP peer reporting similar credential compromise or suspicious RMM activity",
+        "RMM vendor security advisory on credential-based attack against platform"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "very-high",
+      "business_effects": [
+        "Multi-customer incident \u2014 single compromise enables broad downstream exposure",
+        "Cascading compromise across MSP customer base",
+        "Major trust damage \u2014 customers question MSP security posture",
+        "Regulatory breach notification obligations across all affected customers",
+        "MSP liability exposure from downstream customer impact",
+        "Recovery requires coordinated response across all affected environments"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor RMM platform audit logs for access outside maintenance windows",
+        "Alert on concurrent customer environment sessions from single technician account",
+        "Flag vendor account authentication from unexpected geographies",
+        "Monitor for bulk customer enumeration via RMM APIs",
+        "Alert on new script or tool deployment to customer systems via RMM"
+      ],
+      "sentry": [
+        "Open supply chain incident case \u2014 identify all affected downstream customers immediately",
+        "Revoke all compromised vendor credentials and RMM session tokens",
+        "Enumerate all customer environments accessed during compromise window",
+        "Coordinate parallel incident response across all affected customers",
+        "Notify affected customers, regulators, and law enforcement"
+      ],
+      "command": [
+        "Activate supply chain incident operational view \u2014 MSP and downstream customer status",
+        "Track remediation progress across all affected customer environments",
+        "Coordinate customer communications \u2014 consistent messaging across all affected parties",
+        "Manage regulatory notification sequencing across multiple customer jurisdictions"
+      ],
+      "core": [
+        "Emit supply_chain.msp_compromise and supply_chain.downstream_pivot events",
+        "Trigger vendor access revocation across all customer environments",
+        "Flag all customers of compromised MSP for elevated monitoring",
+        "Update supply chain risk scores for affected MSP and downstream customers"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "msp_supply_chain_watch",
+      "sentry_case_type": "supply_chain_iran_msp",
+      "command_view": "supply_chain_incident_ops",
+      "core_event_types": [
+        "supply_chain.msp_compromise",
+        "supply_chain.downstream_pivot",
+        "supply_chain.rmm_abuse",
+        "supply_chain.credential_theft"
+      ]
+    },
+    "confidence": 0.72,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA and FBI advisory on Iranian actors targeting managed service providers",
+      "Mandiant reporting on APT34 supply chain operations",
+      "Microsoft MSTIC reporting on Iranian actors abusing RMM platforms"
+    ]
+  },
+  {
+    "scenario_id": "IRN-07",
+    "title": "Influence operation amplified by fabricated or mixed-authenticity breach material",
+    "family": "influence_ops",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "media",
+        "public_companies",
+        "political_organizations",
+        "defense_adjacent"
+      ],
+      "geography": [
+        "United States",
+        "Israel",
+        "Europe",
+        "global"
+      ],
+      "assets": [
+        "Social media platforms \u2014 X, Telegram, Facebook",
+        "Journalist and activist contact networks",
+        "Company reputation and brand identity",
+        "Investor and market perception",
+        "Internal documents and communications as leak material"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-aligned information operators and persona networks \u2014 linked to IRGC and Ministry of Intelligence",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Narrative shaping to advance Iranian geopolitical interests",
+        "Investor panic and market disruption against target organizations",
+        "Social polarization within target countries",
+        "Intimidation of individuals or organizations critical of Iran",
+        "Undermining trust in Western institutions and technology companies"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Media organizations and journalists covering Iran",
+        "Publicly traded companies with high market visibility",
+        "Political organizations and campaigns in US and allied countries",
+        "Defense-adjacent brands with symbolic value"
+      ],
+      "secondary": [
+        "Investors and market participants consuming leaked narrative",
+        "Social media users susceptible to amplified disinformation",
+        "Journalists who may inadvertently amplify unverified leak claims"
+      ],
+      "high_value_conditions": [
+        "Organization with existing public controversy that amplifies leak narrative",
+        "Public company where leak claim could move stock price",
+        "Political organization during election cycle",
+        "High-profile individual whose reputation creates amplification value"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical event where Iran seeks narrative advantage",
+      "Opportunity created by real breach of target organization",
+      "Iranian government decision to run influence operation against specific target",
+      "US or allied election cycle creating influence operation opportunity"
+    ],
+    "attack_path": [
+      "Real or claimed breach of target organization used as foundation for narrative",
+      "Selective leak of authentic documents mixed with forged or manipulated material",
+      "Persona accounts on X and Telegram publish leak with inflammatory framing",
+      "Coordinated bot network amplifies initial posts to create trending appearance",
+      "Outreach to journalists, activists, and influencers with leak material",
+      "Secondary amplification by unwitting real accounts sharing sensational content",
+      "Narrative maintained and extended with follow-on leaks or fabrications"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Spike in social media mentions of organization linked to leak claims",
+        "Coordinated posting pattern \u2014 multiple accounts posting identical content within seconds",
+        "Account age and follower patterns inconsistent with organic influence",
+        "Document metadata inconsistencies in leaked material \u2014 creation dates, author fields",
+        "Stock price or market reaction to unverified leak claim"
+      ],
+      "behavioral": [
+        "Journalists reporting receiving unsolicited leak material from unknown contacts",
+        "Organization employees receiving threatening or coercive messages citing leaked data",
+        "Investor or customer inquiries referencing specific leaked document claims",
+        "Social media monitoring showing coordinated negative narrative spike"
+      ],
+      "external": [
+        "Low-confidence leak claim from account with no established credibility",
+        "Document authenticity questions raised by researchers \u2014 metadata, formatting anomalies",
+        "Synchronized amplification across multiple Telegram channels simultaneously",
+        "Known Iran-linked persona network nodes participating in amplification",
+        "SENTRY Monitor: coordinated bot amplification pattern detected in signal feed"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "high",
+      "business_effects": [
+        "Narrative chaos requiring sustained PR and legal response",
+        "Reputational damage persisting beyond debunking of fabricated material",
+        "Market confusion and potential stock price impact for public companies",
+        "Customer and partner uncertainty requiring active reassurance campaign",
+        "Executive and board distraction during critical operational periods"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor X and Telegram for leak claims referencing organization",
+        "Alert on coordinated amplification patterns \u2014 synchronized posting from multiple accounts",
+        "Flag outreach to known journalists from unverified accounts referencing organization",
+        "Monitor for document authenticity challenges in social media discourse",
+        "Track account networks participating in amplification for attribution"
+      ],
+      "sentry": [
+        "Open influence operation case \u2014 collect all claim posts, timestamps, and account data",
+        "Conduct rapid document authenticity assessment \u2014 metadata, formatting, content verification",
+        "Coordinate with legal counsel on defamation and disinformation response options",
+        "Prepare factual rebuttal package for journalist and investor outreach",
+        "Engage platform trust and safety teams for coordinated inauthentic behavior takedown"
+      ],
+      "command": [
+        "Activate influence operation response view \u2014 narrative spread and amplification tracking",
+        "Coordinate legal, PR, and security response from unified command",
+        "Track media pickup and journalist engagement with false narrative",
+        "Manage investor and customer communications to counter false narrative"
+      ],
+      "core": [
+        "Emit influence_ops.fabricated_leak and influence_ops.coordinated_amplification events",
+        "Feed persona account identifiers into PHANTOM monitoring list",
+        "Trigger rapid attribution triage workflow",
+        "Update organizational threat posture for sustained influence operation exposure"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "iran_influence_ops_watch",
+      "sentry_case_type": "influence_ops_iran_fabricated_leak",
+      "command_view": "influence_ops_response",
+      "core_event_types": [
+        "influence_ops.fabricated_leak",
+        "influence_ops.coordinated_amplification",
+        "influence_ops.persona_network",
+        "influence_ops.journalist_outreach"
+      ]
+    },
+    "confidence": 0.71,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "Meta Adversarial Threat Report on Iranian influence operations 2022-2025",
+      "Stanford Internet Observatory reporting on Iranian influence operation networks",
+      "Microsoft MSTIC reporting on Iranian information operations",
+      "FBI indictments of Iranian nationals for influence operations against US elections"
+    ]
+  },
+  {
+    "scenario_id": "AWS-ME-01",
+    "title": "Five Middle East data centers unavailable across UAE and Bahrain",
+    "family": "cloud_outage",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "finance",
+        "logistics",
+        "media",
+        "digital_government",
+        "telecom"
+      ],
+      "geography": [
+        "UAE",
+        "Bahrain",
+        "Middle East"
+      ],
+      "assets": [
+        "EC2 instances",
+        "EBS volumes",
+        "RDS databases",
+        "S3 buckets",
+        "Lambda functions",
+        "DynamoDB tables",
+        "CloudWatch",
+        "API Gateways",
+        "Load balancers"
+      ]
+    },
+    "threat_actor": {
+      "label": "Non-adversarial \u2014 physical or infrastructure failure event",
+      "attribution": "unknown",
+      "motives": [
+        "n/a \u2014 natural disaster, kinetic strike, grid failure, or coordinated cyber-physical disruption"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Organizations with single-region AWS Middle East deployments",
+        "Workloads pinned to UAE or Bahrain AZs",
+        "State and finance workloads with data residency constraints"
+      ],
+      "secondary": [
+        "Cross-region workloads with Middle East as primary",
+        "Platforms with hidden control-plane dependencies on affected regions",
+        "MSPs and SaaS providers serving regional customers"
+      ],
+      "high_value_conditions": [
+        "No cross-region replication configured",
+        "Data residency rules prevent failover to alternate regions",
+        "Autoscaling dependent on impaired AZs",
+        "RDS in single-AZ configuration"
+      ]
+    },
+    "trigger_conditions": [
+      "Kinetic strike or regional conflict spillover affecting physical facilities",
+      "Regional power grid failure impacting multiple AZs simultaneously",
+      "Coordinated cyber-physical disruption of data center infrastructure",
+      "Cascading cooling or fire suppression failure"
+    ],
+    "attack_path": [
+      "Physical or infrastructure event renders two UAE AZs and all three Bahrain AZs unavailable",
+      "EC2 instance launches fail; EBS and RDS experience I/O impairment",
+      "API error rates spike; control-plane operations become intermittent",
+      "Network latency increases; DNS resolution degrades for regional endpoints",
+      "Autoscaling attempts to relaunch into impaired AZs, compounding saturation",
+      "Single-region application stacks enter partial or full outage"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Elevated EC2 API error rates (RunInstances, DescribeInstances)",
+        "EBS volume attachment failures and I/O latency spikes",
+        "RDS failover events and replication lag alerts",
+        "Lambda invocation errors and throttling above baseline",
+        "CloudWatch metrics gap \u2014 missing datapoints from affected AZs",
+        "S3 PUT/GET elevated 5xx error rates for regional buckets"
+      ],
+      "behavioral": [
+        "Applications returning elevated 5xx responses to end users",
+        "Autoscaling groups unable to reach desired capacity",
+        "Queue depth growing in SQS without consumer throughput",
+        "Database connection pool exhaustion as primaries failover",
+        "Operator manual intervention attempts across multiple tenants simultaneously"
+      ],
+      "external": [
+        "AWS Service Health Dashboard degradation notices for me-south-1 and me-central-1",
+        "Coordinated customer reports of regional outage on social and status pages",
+        "News or intelligence reporting on regional infrastructure event",
+        "Downdetector spikes for services hosted in Middle East regions"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "very-high",
+      "business_effects": [
+        "Service downtime for single-region Middle East deployments",
+        "Transaction loss and SLA breach obligations",
+        "Support surge overwhelming customer-facing teams",
+        "Reputational damage from prolonged customer-facing outage",
+        "Emergency engineering costs and unplanned cloud spend for recovery"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Activate Middle East outage watch state and begin threat correlation",
+        "Monitor for adversarial opportunism \u2014 DDoS, phishing, suspicious admin activity coinciding with outage",
+        "Flag high-risk change windows during active recovery operations",
+        "Alert on access from unusual locations attempting to exploit degraded defenses"
+      ],
+      "sentry": [
+        "Open incident case: AWS Middle East Regional Outage \u2014 AWS-ME-01",
+        "Ingest AWS Health API events for me-south-1 and me-central-1",
+        "Map affected tenant architectures against impaired AZs and services",
+        "Score blast radius per tenant: resilient / degraded / critical",
+        "Log all recovery actions and failover decisions for post-incident review"
+      ],
+      "command": [
+        "Activate Middle East outage operational view \u2014 show tenant status: dark / degraded / rerouted",
+        "Display AZ availability map with real-time health signal overlay",
+        "Prioritize failover sequencing by tenant criticality and residency constraints",
+        "Broadcast status updates and customer communications from unified incident command"
+      ],
+      "core": [
+        "Emit cloud_outage events for all affected tenant workloads",
+        "Correlate AWS Health API feed with internal tenant architecture metadata",
+        "Calculate estimated blast radius per tenant using dependency maps",
+        "Trigger failover recommendation workflow for eligible cross-region tenants"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "middle_east_outage_watch",
+      "sentry_case_type": "cloud_outage_regional",
+      "command_view": "aws_me_outage_ops",
+      "core_event_types": [
+        "cloud_outage.az_failure",
+        "cloud_outage.service_degradation",
+        "cloud_outage.tenant_impact"
+      ]
+    },
+    "confidence": 0.72,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "AWS Middle East UAE region documentation \u2014 three AZ architecture",
+      "AWS Middle East Bahrain region documentation \u2014 three AZ architecture",
+      "March 2026 reporting on UAE and Bahrain facility damage",
+      "AWS well-architected resilience guidance"
+    ]
+  },
+  {
+    "scenario_id": "AWS-ME-02",
+    "title": "Five data centers down plus identity and DNS dependency stress",
+    "family": "hybrid",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "finance",
+        "saas",
+        "enterprise"
+      ],
+      "geography": [
+        "UAE",
+        "Bahrain",
+        "Middle East",
+        "any region with control-plane dependencies"
+      ],
+      "assets": [
+        "IAM",
+        "AWS SSO",
+        "Route 53",
+        "KMS",
+        "AWS Control Tower",
+        "Secrets Manager",
+        "CloudFront",
+        "API Gateway",
+        "Cognito",
+        "STS"
+      ]
+    },
+    "threat_actor": {
+      "label": "Non-adversarial \u2014 physical failure compounded by dependency cascade",
+      "attribution": "unknown",
+      "motives": [
+        "n/a \u2014 infrastructure failure with dependency amplification"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "SaaS platforms with tightly coupled cloud-native control planes",
+        "Banks and financial institutions with identity-heavy workloads",
+        "Enterprises using AWS SSO or federated identity dependent on regional endpoints"
+      ],
+      "secondary": [
+        "Automation pipelines relying on Secrets Manager or KMS in affected regions",
+        "Applications using CloudFront distributions with regional origins",
+        "Development and deployment pipelines with CI/CD dependencies on affected AZs"
+      ],
+      "high_value_conditions": [
+        "KMS customer-managed keys in affected region required for data access",
+        "SSO or SAML IdP endpoint hosted in or routing through affected region",
+        "Route 53 health checks routing traffic into impaired AZs",
+        "Secrets Manager or Parameter Store dependencies in affected region"
+      ]
+    },
+    "trigger_conditions": [
+      "Regional facility loss as described in AWS-ME-01",
+      "Secondary overload of DNS and identity control planes due to retry storms",
+      "Potential opportunistic cyber activity targeting degraded authentication services",
+      "Cascading dependency failures amplifying scope beyond directly impaired AZs"
+    ],
+    "attack_path": [
+      "Physical facility loss triggers the base outage (AWS-ME-01)",
+      "Applications attempt recovery but cannot authenticate \u2014 IAM/SSO endpoints intermittent",
+      "KMS calls fail, blocking decryption of data even on healthy compute",
+      "Route 53 health checks lag, routing traffic into unhealthy endpoints",
+      "Secrets Manager timeouts break automation and deployment pipelines",
+      "Nominally healthy regions appear degraded because dependency calls time out",
+      "Operators spend recovery time on control-plane issues rather than workload restoration"
+    ],
+    "indicators": {
+      "telemetry": [
+        "IAM/STS API elevated error rates and latency spikes",
+        "KMS decrypt operation failures across multiple services",
+        "Route 53 resolver query failure rate increase",
+        "Secrets Manager GetSecretValue timeout rate above baseline",
+        "CloudFront origin connection failures to regional origins",
+        "SSO/Cognito authentication failure rate spike"
+      ],
+      "behavioral": [
+        "Healthy servers returning authentication errors to end users",
+        "Automation pipelines stalling at credential retrieval steps",
+        "Failover scripts timing out before completing",
+        "Operators reporting 'nothing is wrong but nothing works'",
+        "Manual workarounds being applied at scale across multiple teams"
+      ],
+      "external": [
+        "AWS Health Dashboard entries for IAM, KMS, Route 53 in affected regions",
+        "Customer reports of auth failures independent of compute availability",
+        "Security vendor alerting on abnormal authentication patterns during outage window"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "critical",
+      "business_effects": [
+        "Application outage beyond directly impaired infrastructure \u2014 false safety in 'healthy' regions",
+        "Recovery time extension due to control-plane friction",
+        "Increased manual operations and incident command duration",
+        "Customer-facing communication delays as root cause is harder to diagnose",
+        "Risk of rushed credential or config changes creating post-incident security debt"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor for authentication anomalies that could indicate credential abuse during dependency confusion",
+        "Flag any admin-level access attempts during known control-plane degradation window",
+        "Alert on unusual MFA bypass or session token reuse patterns",
+        "Correlate auth failure telemetry with outage timeline to distinguish outage vs. attack"
+      ],
+      "sentry": [
+        "Open dependency cascade sub-case linked to AWS-ME-01",
+        "Map all tenant workloads with KMS, SSO, Secrets Manager dependencies in affected regions",
+        "Identify tenants with false confidence \u2014 nominally healthy but functionally broken",
+        "Document manual workarounds applied during outage for post-incident security review"
+      ],
+      "command": [
+        "Surface hidden dependency status alongside compute/storage health in outage view",
+        "Flag tenants marked 'degraded by dependency' separately from 'directly impaired'",
+        "Display control-plane health indicators: IAM, KMS, Route 53, Secrets Manager",
+        "Coordinate messaging to operators on control-plane workarounds and ETA"
+      ],
+      "core": [
+        "Emit cloud_outage.dependency_cascade events for each confirmed control-plane failure",
+        "Tag tenant impact records with dependency_amplified flag where applicable",
+        "Ingest Route 53 and IAM health signals as first-class outage indicators",
+        "Update blast radius scores when dependency failures extend impact beyond direct AZ loss"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "dependency_cascade_watch",
+      "sentry_case_type": "cloud_outage_dependency_cascade",
+      "command_view": "aws_me_outage_ops",
+      "core_event_types": [
+        "cloud_outage.dependency_cascade",
+        "cloud_outage.auth_plane_degradation",
+        "cloud_outage.dns_stress"
+      ]
+    },
+    "confidence": 0.68,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "AWS well-architected resilience guidance on control-plane dependencies",
+      "March 2026 reporting on UAE and Bahrain facility degradation",
+      "AWS documentation on IAM, KMS, and Route 53 regional behavior"
+    ]
+  },
+  {
+    "scenario_id": "AWS-ME-03",
+    "title": "Five data centers down during active Iran-linked cyber campaign",
+    "family": "hybrid",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "telecom",
+        "finance",
+        "critical_infrastructure",
+        "saas"
+      ],
+      "geography": [
+        "UAE",
+        "Bahrain",
+        "Middle East",
+        "global \u2014 wherever affected tenants operate"
+      ],
+      "assets": [
+        "Cloud management consoles",
+        "VPN concentrators",
+        "Identity providers",
+        "MSP remote management tooling",
+        "Backup and DR infrastructure",
+        "Status and communication pages"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-affiliated cyber operators \u2014 state and proxy \u2014 exploiting outage conditions",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Exploit degraded defenses during crisis",
+        "Opportunistic credential theft and initial access",
+        "Sabotage recovery operations",
+        "Amplify outage impact for geopolitical signaling"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Tech firms and MSPs in active outage response mode",
+        "Telecoms and cloud-heavy enterprises with degraded monitoring during failover",
+        "Critical infrastructure operators with IT-OT convergence points"
+      ],
+      "secondary": [
+        "Suppliers and vendors with elevated access during recovery",
+        "Customer-facing status pages and communications channels",
+        "Backup and DR infrastructure suddenly under active load"
+      ],
+      "high_value_conditions": [
+        "Security monitoring degraded or rerouted during outage response",
+        "Emergency vendor and contractor access elevated without normal controls",
+        "Rushed configuration changes creating new attack surface",
+        "Staff focused on restoration with reduced capacity for security review"
+      ]
+    },
+    "trigger_conditions": [
+      "Concurrent kinetic and cyber escalation in the Middle East region",
+      "Iranian cyber campaign active at time of regional infrastructure disruption",
+      "Geopolitical escalation event triggering both physical disruption and retaliatory cyber operations",
+      "Outage creating visible opportunity for adversary exploitation"
+    ],
+    "attack_path": [
+      "Regional outage begins (AWS-ME-01 or AWS-ME-02 conditions active)",
+      "Iran-affiliated operators launch DDoS against status pages and customer communication channels",
+      "Phishing campaigns themed around outage notifications target IT staff and executives",
+      "Malicious vendor access attempts exploit elevated emergency permissions",
+      "Suspicious admin changes pushed during failover windows when change management is bypassed",
+      "MSPs and suppliers become additional compromise vectors during their own crisis response",
+      "Attackers establish persistence during the noise of outage recovery operations"
+    ],
+    "indicators": {
+      "telemetry": [
+        "DDoS traffic spike against status pages, customer portals, and communication infrastructure",
+        "VPN and remote access login attempts from anomalous geolocations during outage window",
+        "Privileged account activity from IP ranges inconsistent with known operators",
+        "New OAuth grants or service principal creation during outage recovery window",
+        "Mailbox forwarding rules created during or immediately after outage notification period"
+      ],
+      "behavioral": [
+        "Phishing emails themed around outage notifications, failover instructions, or AWS status updates",
+        "Vendor accounts accessing customer environments outside normal change windows",
+        "Security tool reconfiguration or disabling during outage 'for performance'",
+        "Admin changes applied without change management approval citing outage urgency",
+        "Suspicious data archiving or exfiltration coinciding with outage timeline"
+      ],
+      "external": [
+        "Threat intelligence reporting on Iranian cyber operations timed to regional disruption",
+        "Coordinated hacktivist claims on Telegram or X coinciding with outage",
+        "Reports of phishing campaigns using AWS or provider-themed lures",
+        "CISA or partner agency alerting on opportunistic exploitation during outage window"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "critical",
+      "business_effects": [
+        "Breach risk elevated during outage due to degraded detection and rushed changes",
+        "Crisis fatigue reducing security team capacity to identify concurrent attack",
+        "Executive and board pressure compounded by dual outage and security incident",
+        "Increased legal and regulatory exposure from breach during crisis event",
+        "Post-incident discovery of persistent access established during outage window"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Activate concurrent threat watch alongside outage response \u2014 do not stand down during outage",
+        "Enforce change freeze on privileged access and admin operations during outage recovery",
+        "Block or require secondary approval for any new vendor or contractor access grants",
+        "Alert on all new OAuth grants, service principals, and forwarding rules created during outage window",
+        "Correlate outage timeline with Iran-linked TTP indicators from IRN-01 through IRN-07"
+      ],
+      "sentry": [
+        "Open parallel case: opportunistic threat activity during AWS-ME outage",
+        "Tag all security events with outage_concurrent flag for post-incident attribution",
+        "Ingest Iran cyber campaign threat intelligence alongside cloud health telemetry",
+        "Track all emergency access grants and change-management bypasses for review"
+      ],
+      "command": [
+        "Split outage ops view to show simultaneous outage status and threat activity feed",
+        "Surface active threat indicators alongside tenant outage status",
+        "Flag any tenants showing both outage impact and concurrent anomalous access",
+        "Coordinate change-freeze communications to all engineering and vendor teams"
+      ],
+      "core": [
+        "Emit hybrid events combining cloud_outage and threat_activity tags",
+        "Correlate outage event timestamps with security telemetry for anomaly detection",
+        "Trigger elevated alert thresholds for privileged access and admin changes during outage window",
+        "Feed Iranian TTP indicators from IRN series into real-time correlation engine"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "concurrent_threat_outage_watch",
+      "sentry_case_type": "hybrid_outage_threat",
+      "command_view": "aws_me_hybrid_ops",
+      "core_event_types": [
+        "cloud_outage.concurrent_threat",
+        "threat_activity.opportunistic_access",
+        "threat_activity.outage_phishing"
+      ]
+    },
+    "confidence": 0.61,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "Iran threat matrix IRN-01 through IRN-07",
+      "March 2026 reporting on UAE and Bahrain facility degradation",
+      "CISA and partner agency guidance on opportunistic exploitation during infrastructure events",
+      "Historical pattern: Iranian cyber activity correlated with regional geopolitical escalation"
+    ]
+  },
+  {
+    "scenario_id": "AWS-ME-04",
+    "title": "Five data centers down for more than 24 hours",
+    "family": "cloud_outage",
+    "status": "hypothetical",
+    "scope": {
+      "sector": [
+        "all \u2014 sustained outage affects all sectors with Middle East cloud dependencies"
+      ],
+      "geography": [
+        "UAE",
+        "Bahrain",
+        "Middle East",
+        "globally \u2014 for residency-constrained workloads"
+      ],
+      "assets": [
+        "All AWS services in me-south-1 and me-central-1",
+        "Queuing systems",
+        "Replication pipelines",
+        "Backup storage",
+        "DR infrastructure",
+        "Customer data stores with residency requirements"
+      ]
+    },
+    "threat_actor": {
+      "label": "Non-adversarial \u2014 sustained physical or infrastructure failure",
+      "attribution": "unknown",
+      "motives": [
+        "n/a \u2014 extended facility damage, restricted site access, or sustained power loss"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "SMBs without tested disaster recovery plans",
+        "Regulated workloads with strict data residency constraints preventing failover",
+        "Real-time platforms with sub-100ms latency requirements"
+      ],
+      "secondary": [
+        "Organizations with partial DR capability exhausted by extended outage duration",
+        "Platforms dependent on data consistency across now-diverged replicas",
+        "Customers on manual workarounds that are not sustainable beyond hours"
+      ],
+      "high_value_conditions": [
+        "No tested DR runbook \u2014 team improvising under pressure",
+        "Data residency rules legally preventing cross-region failover",
+        "Queue backlogs accumulating faster than can be drained post-recovery",
+        "Contractual SLA breach thresholds crossed within outage window"
+      ]
+    },
+    "trigger_conditions": [
+      "Sustained facility damage requiring physical repair beyond emergency response",
+      "Fire suppression system activation rendering facility inaccessible",
+      "Restricted site access due to ongoing regional security situation",
+      "Power infrastructure failure requiring multi-day restoration"
+    ],
+    "attack_path": [
+      "Base outage event (AWS-ME-01) is not resolved within 4-8 hours",
+      "Queue systems saturate as retry storms overwhelm surviving infrastructure",
+      "Replication windows stretch, creating data consistency gaps between regions",
+      "Manual workarounds applied at hour 2-4 become unsustainable by hour 12",
+      "Business continuity plans fully activated \u2014 some customers fail over successfully, others remain dark",
+      "By hour 24, revenue loss, SLA breach, and customer churn signals are measurable",
+      "Recovery sequencing becomes complex: backlog drain, data reconciliation, replication catch-up"
+    ],
+    "indicators": {
+      "telemetry": [
+        "SQS queue depth growing without consumer throughput recovery",
+        "DynamoDB replication lag metrics extending beyond RPO thresholds",
+        "S3 replication status showing stale cross-region copies",
+        "RDS automated backup windows missed for extended period",
+        "CloudWatch metrics showing sustained zero-datapoint gaps for affected AZs"
+      ],
+      "behavioral": [
+        "Engineering teams applying increasingly complex manual workarounds",
+        "Customer support ticket volume growing non-linearly with outage duration",
+        "Emergency procurement and cloud spend acceleration for alternate capacity",
+        "Executive escalation cadence increasing \u2014 C-suite engaged by hour 6-8",
+        "Customer churn signals appearing in CRM and billing systems by hour 24"
+      ],
+      "external": [
+        "AWS extended incident notice with no clear ETA",
+        "Customer public announcements about service degradation",
+        "Media reporting on extended regional outage and business impact",
+        "Regulator inquiries for financial and healthcare sector participants"
+      ]
+    },
+    "impact": {
+      "likelihood": "low",
+      "severity": "critical",
+      "business_effects": [
+        "Revenue loss escalating non-linearly with each hour of outage",
+        "SLA breach triggering contractual penalties and credit obligations",
+        "Customer trust erosion leading to measurable churn",
+        "Emergency engineering and cloud spend sharply increasing",
+        "Regulatory scrutiny for finance, healthcare, and government-adjacent workloads",
+        "Post-incident data reconciliation cost and complexity"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Maintain threat watch through extended outage \u2014 adversary patience matches outage duration",
+        "Monitor for long-dwell access attempts using outage as cover for extended persistence",
+        "Flag any security control lapses introduced during extended manual operations period",
+        "Alert on unusual data movement patterns that could indicate exfiltration under outage cover"
+      ],
+      "sentry": [
+        "Escalate case to sustained outage severity \u2014 trigger extended incident protocol",
+        "Track SLA breach timers per tenant and alert at threshold crossing",
+        "Document manual workarounds and emergency access grants for post-incident audit",
+        "Coordinate evidence collection for regulatory reporting obligations",
+        "Begin backlog drain planning documentation for use at restoration"
+      ],
+      "command": [
+        "Activate extended outage operational cadence \u2014 hourly status cadence to executives",
+        "Display running revenue impact estimate and SLA breach status per tenant",
+        "Prioritize restoration sequencing: residency-constrained first, highest revenue second",
+        "Coordinate customer communication cadence and messaging from unified command"
+      ],
+      "core": [
+        "Emit cloud_outage.extended_duration event at 6h, 12h, 24h thresholds",
+        "Calculate cumulative business impact per tenant based on outage duration",
+        "Trigger backlog drain planning workflow at restoration signal",
+        "Feed outage duration data into post-incident resilience scoring"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "extended_outage_watch",
+      "sentry_case_type": "cloud_outage_extended",
+      "command_view": "aws_me_extended_ops",
+      "core_event_types": [
+        "cloud_outage.extended_duration",
+        "cloud_outage.sla_breach",
+        "cloud_outage.backlog_saturation"
+      ]
+    },
+    "confidence": 0.45,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "AWS well-architected resilience guidance",
+      "March 2026 reporting on UAE and Bahrain facility damage",
+      "Historical cloud outage duration analysis \u2014 major provider incidents 2020-2025"
+    ]
+  },
+  {
+    "scenario_id": "AWS-ME-05",
+    "title": "Five data centers down but customers are architected for survivability",
+    "family": "cloud_outage",
+    "status": "hypothetical",
+    "scope": {
+      "sector": [
+        "technology",
+        "finance",
+        "saas",
+        "enterprise"
+      ],
+      "geography": [
+        "UAE",
+        "Bahrain",
+        "Middle East \u2014 impact contained by architecture"
+      ],
+      "assets": [
+        "Cross-region replication targets",
+        "Multi-cloud control planes",
+        "Externalized identity providers",
+        "Tested DR runbooks",
+        "Global load balancers",
+        "CDN edge infrastructure"
+      ]
+    },
+    "threat_actor": {
+      "label": "Non-adversarial \u2014 physical or infrastructure failure, resilience pre-validated",
+      "attribution": "unknown",
+      "motives": [
+        "n/a \u2014 same facility loss scenario with materially stronger preparedness posture"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Residency-bound workloads that cannot fail over \u2014 remaining exposure",
+        "Latency-sensitive services where alternate-region degradation is still customer-visible"
+      ],
+      "secondary": [
+        "Analytics and batch pipelines accepting delayed processing",
+        "Development and staging environments pinned to affected regions"
+      ],
+      "high_value_conditions": [
+        "Cross-region failover not tested under actual load conditions",
+        "RPO/RTO targets not validated against real replication lag at time of failure",
+        "Multi-cloud control plane with single point of failure in affected region"
+      ]
+    },
+    "trigger_conditions": [
+      "Same regional facility loss as AWS-ME-01",
+      "Failover automation triggers successfully across resilient tenants",
+      "Health checks correctly identify and reroute away from impaired AZs"
+    ],
+    "attack_path": [
+      "Regional facility loss event occurs (same trigger as AWS-ME-01)",
+      "Health checks and Route 53 failover policies reroute traffic within minutes",
+      "Cross-region replication serves reads; writes continue in alternate region",
+      "Identity and KMS dependencies externalized \u2014 authentication continues unimpaired",
+      "Core customer-facing services remain available with tolerable latency increase",
+      "Residency-constrained and latency-sensitive workloads show minor degradation",
+      "Analytics pipelines enter delayed processing mode; batch jobs queued for later drain"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Route 53 health check failover events triggering on affected AZ endpoints",
+        "Cross-region replication lag spike then stabilization as primary shifts",
+        "Increase in alternate-region API call volume as traffic shifts",
+        "CDN edge cache hit rate temporarily elevated as origin requests reroute",
+        "Read replica promotion events in database clusters"
+      ],
+      "behavioral": [
+        "Customer-facing latency increase within tolerable thresholds",
+        "Analytics dashboards entering read-only or delayed mode",
+        "Development pipelines paused or rerouted without manual intervention",
+        "Support volume remaining flat or minimally elevated"
+      ],
+      "external": [
+        "AWS Health Dashboard showing regional degradation",
+        "Customer status pages showing minor degradation rather than outage",
+        "Minimal social media or press coverage due to contained customer impact"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "medium",
+      "business_effects": [
+        "Tolerable latency increase for core customer-facing services",
+        "Delayed analytics and batch processing \u2014 catchup after restoration",
+        "Minimal support surge compared to unprepared peers",
+        "Regulator posture strengthened by demonstrated resilience",
+        "Residual revenue impact limited to residency-constrained and latency-sensitive workloads"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Maintain standard threat watch \u2014 resilient posture reduces attack surface during outage",
+        "Confirm security controls remain active across failover targets",
+        "Validate that MFA and access controls are functioning correctly in alternate regions",
+        "Use survivability event as opportunity to baseline security telemetry across alternate-region paths"
+      ],
+      "sentry": [
+        "Open monitoring case: AWS-ME-05 survivability validation",
+        "Document which tenants achieved automatic failover and which required manual intervention",
+        "Record RPO and RTO actuals for comparison against design targets",
+        "Capture lessons and gaps for post-incident resilience scoring update"
+      ],
+      "command": [
+        "Display tenant survivability status \u2014 resilient / minor degradation / residency-constrained",
+        "Surface tenants that required manual intervention for resilience gap analysis",
+        "Coordinate proactive customer communications confirming service continuity",
+        "Prepare post-incident resilience report for executive and board review"
+      ],
+      "core": [
+        "Emit cloud_outage.survivability_confirmed events for tenants achieving automatic failover",
+        "Record RPO and RTO actuals against design targets in tenant architecture records",
+        "Update tenant resilience scores based on real-world performance",
+        "Feed survivability data into continuous resilience posture validation workflow"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "standard_watch",
+      "sentry_case_type": "cloud_outage_survivability_validation",
+      "command_view": "aws_me_outage_ops",
+      "core_event_types": [
+        "cloud_outage.survivability_confirmed",
+        "cloud_outage.failover_executed",
+        "cloud_outage.rpo_rto_actual"
+      ]
+    },
+    "confidence": 0.78,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "AWS well-architected resilience guidance \u2014 multi-region active-active patterns",
+      "March 2026 reporting on UAE and Bahrain facility degradation",
+      "AWS documentation on Route 53 health checks and failover routing policies"
+    ]
+  },
+  {
+    "scenario_id": "AZR-01",
+    "title": "AiTM phishing via trusted Azure and Firebase domains targeting enterprise cloud tenants",
+    "family": "hack_and_leak",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "finance",
+        "enterprise_saas",
+        "healthcare",
+        "media"
+      ],
+      "geography": [
+        "global",
+        "Middle East",
+        "Europe",
+        "North America"
+      ],
+      "assets": [
+        "Azure Static Web Apps",
+        "Firebase Hosting",
+        "Azure Blob Storage",
+        "Cloudflare Workers",
+        "Microsoft 365 sessions",
+        "Entra ID refresh tokens",
+        "OAuth access tokens",
+        "MFA session cookies"
+      ]
+    },
+    "threat_actor": {
+      "label": "Black-hat and hacktivist crews \u2014 AiTM kit operators including Tycoon2FA, Sneaky2FA, Cephas kit users",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Durable enterprise tenant access without touching core infrastructure",
+        "Token and session theft bypassing MFA",
+        "Credential resale or operational use for further campaigns",
+        "Reputation and data operations against high-visibility targets"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Enterprise Microsoft 365 and Entra ID tenants",
+        "Organizations with legacy MFA (TOTP, SMS) rather than phishing-resistant FIDO2",
+        "Executive and IT admin accounts with broad OAuth scope"
+      ],
+      "secondary": [
+        "Organizations using Azure or Firebase for legitimate hosting \u2014 reputation borrowed by attacker infrastructure",
+        "SaaS platforms with long-lived refresh tokens",
+        "Enterprises with token lifetime policies not enforced"
+      ],
+      "high_value_conditions": [
+        "Conditional access policies not enforcing device compliance or token binding",
+        "Refresh token lifetime not restricted \u2014 persistent access post-session theft",
+        "Service accounts with Mail.Read and Files.ReadWrite at tenant scope",
+        "No continuous access evaluation (CAE) enforced"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation prompting hacktivist campaigns against Western or Gulf enterprise targets",
+      "Availability of commodity AiTM kits (Tycoon2FA, Sneaky2FA) lowering attacker barrier",
+      "High-profile news event creating a credible phishing lure theme",
+      "Target organization publicly associated with a geopolitically sensitive sector"
+    ],
+    "attack_path": [
+      "Attacker deploys AiTM phishing kit on Azure Static Web Apps, Firebase Hosting, or Azure Blob under a convincing subdomain \u2014 inheriting trust of *.azurestaticapps.net or *.web.app",
+      "Phishing lure sent to target staff \u2014 themed around IT alert, MFA re-enrollment, or (during outage) cloud service notification",
+      "Victim authenticates through attacker-controlled reverse proxy \u2014 session cookie and refresh token captured in real time",
+      "Attacker replays stolen session cookie to access M365, SharePoint, OneDrive, Teams",
+      "Mailbox rules created to forward or delete security alerts; OAuth grants added for persistence",
+      "Data exfiltration from mailbox and file stores \u2014 selective leak or full archive download",
+      "Optionally: stolen access used to pivot into connected SaaS apps via OAuth chain"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Entra ID sign-in from unfamiliar IP immediately following successful MFA \u2014 classic AiTM pattern",
+        "Impossible travel: authentication from two geographies within minutes",
+        "New OAuth application consent granted by privileged account",
+        "Mailbox forwarding rule created within minutes of sign-in event",
+        "Bulk download from SharePoint or OneDrive shortly after authentication",
+        "Refresh token used from new device or IP not seen in 30-day baseline",
+        "Conditional access policy bypass via legacy auth protocol"
+      ],
+      "behavioral": [
+        "User reports not recognizing a sign-in but MFA succeeded",
+        "Security alert emails missing from inbox \u2014 forwarding or deletion rule active",
+        "Unfamiliar OAuth apps appearing in tenant app registrations",
+        "New inbox rules visible in Exchange admin center not created by user",
+        "Large archive or ZIP downloads in audit logs not matching user work pattern"
+      ],
+      "external": [
+        "Threat intelligence reporting on AiTM kit (Tycoon2FA, Sneaky2FA, Cephas) hosted on Azure or Firebase domains",
+        "MSTIC or partner reporting on phishing campaigns abusing *.azurestaticapps.net or *.web.app",
+        "Phishing URL submissions to VirusTotal or URLhaus matching *.azure or *.firebase subdomains",
+        "Researcher reporting on new AiTM kit variant with evasion against Microsoft Defender for Office 365",
+        "SENTRY monitor: X/Twitter or Telegram posts advertising stolen M365 session tokens for target sector"
+      ]
+    },
+    "impact": {
+      "likelihood": "high",
+      "severity": "very-high",
+      "business_effects": [
+        "Full tenant access under legitimate user identity \u2014 no malware to detect",
+        "Data breach from mailbox, SharePoint, and OneDrive exfiltration",
+        "Persistent access surviving password reset unless refresh tokens explicitly revoked",
+        "Regulatory breach notification obligations triggered",
+        "Reputational damage if exfiltrated data is leaked publicly",
+        "Board and executive exposure if leadership accounts compromised"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on sign-in events with AiTM pattern: successful MFA followed by new IP within 5 minutes",
+        "Flag impossible travel events involving privileged accounts or those with broad OAuth scope",
+        "Monitor for new OAuth app consents granted by admin or privileged accounts",
+        "Alert on new mailbox forwarding rules created within 60 minutes of authentication event",
+        "Correlate Azure and Firebase domain reputation against known AiTM infrastructure lists",
+        "Trigger token revocation workflow on confirmed AiTM indicators"
+      ],
+      "sentry": [
+        "Open case: AiTM session theft \u2014 AZR-01",
+        "Collect sign-in logs, OAuth consent records, mailbox rule audit trail, and download events",
+        "Identify all sessions and refresh tokens issued in the compromise window for revocation scope",
+        "Map all OAuth grants made by compromised account for downstream SaaS exposure assessment",
+        "Document phishing infrastructure for sharing with MSTIC and threat intel partners"
+      ],
+      "command": [
+        "Display compromised account status and scope of access in real-time tenant view",
+        "Surface all active sessions and OAuth grants for affected account",
+        "Coordinate token revocation, password reset, and MFA re-enrollment from unified command",
+        "Track SaaS downstream exposure across connected apps"
+      ],
+      "core": [
+        "Emit hack_and_leak.aitm_session_theft event on confirmed indicator cluster",
+        "Trigger automated refresh token revocation for affected accounts via Graph API",
+        "Feed phishing domain IOCs into PHANTOM watch list for cross-tenant correlation",
+        "Update tenant risk score based on MFA posture and token lifetime policy gaps"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "aitm_phishing_watch",
+      "sentry_case_type": "identity_compromise_aitm",
+      "command_view": "tenant_identity_ops",
+      "core_event_types": [
+        "hack_and_leak.aitm_session_theft",
+        "identity.oauth_consent_anomaly",
+        "identity.impossible_travel",
+        "identity.mailbox_rule_created"
+      ]
+    },
+    "confidence": 0.88,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "Tycoon2FA and Sneaky2FA AiTM kit analysis \u2014 multiple researchers 2025-2026",
+      "Microsoft MSTIC reporting on AiTM phishing abusing Azure and Firebase domains",
+      "The Hacker News: cybercriminals abuse Google Cloud email infrastructure \u2014 January 2026",
+      "ANY.RUN: attackers abuse trusted Microsoft and Google platforms",
+      "CISA and FBI joint advisory on MFA bypass techniques"
+    ]
+  },
+  {
+    "scenario_id": "GCP-01",
+    "title": "Cloud-native worm and metadata credential pivot across GCP Kubernetes and container workloads",
+    "family": "hybrid",
+    "status": "watch",
+    "scope": {
+      "sector": [
+        "technology",
+        "fintech",
+        "ai_ml_platforms",
+        "saas",
+        "media"
+      ],
+      "geography": [
+        "global",
+        "GCP regions \u2014 europe-west, us-central, asia-southeast, me-west1"
+      ],
+      "assets": [
+        "GKE clusters",
+        "Docker API endpoints",
+        "GCP metadata server (169.254.169.254)",
+        "GCS buckets",
+        "GCP service account keys",
+        "Workload Identity bindings",
+        "Cloud Build pipelines",
+        "Artifact Registry",
+        "BigQuery datasets",
+        "Cloud Functions"
+      ]
+    },
+    "threat_actor": {
+      "label": "Black-hat financially motivated crews and hacktivist actors \u2014 TeamTNT-style cloud worm operators",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Cryptomining at scale using stolen cloud compute",
+        "Credential harvesting for lateral movement into broader tenant and customer environments",
+        "Platform for DDoS botnet or C2 infrastructure",
+        "Data exfiltration from GCS buckets and BigQuery for hack-and-leak operations"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Organizations running GKE with unauthenticated or weakly authenticated API server endpoints",
+        "Tenants with exposed Docker socket or container runtime APIs",
+        "Workloads using default GCP service accounts with Editor or Owner roles"
+      ],
+      "secondary": [
+        "CI/CD pipelines using Cloud Build with over-privileged service accounts",
+        "Tenants with public GCS buckets containing application configs or credentials",
+        "Organizations using GCP Workload Identity without scope restriction"
+      ],
+      "high_value_conditions": [
+        "Default service account attached to GKE nodes with cloud-platform scope",
+        "GKE cluster with anonymous authentication enabled on API server",
+        "Cloud Build service account with access to production secrets or Artifact Registry",
+        "GCS bucket containing service account key files or application credentials"
+      ]
+    },
+    "trigger_conditions": [
+      "Mass scanning for exposed Kubernetes API servers and Docker daemons \u2014 opportunistic",
+      "Discovery of misconfigured GKE cluster in target organization's GCP project",
+      "Hacktivist campaign targeting specific sector coinciding with tool availability",
+      "Geopolitical escalation prompting disruption campaign against cloud-heavy targets"
+    ],
+    "attack_path": [
+      "Attacker scans for exposed GKE API servers (port 6443), Docker daemons (2375/2376), and kubelet endpoints",
+      "Unauthenticated or weakly authenticated API access allows pod creation or exec into running container",
+      "From compromised container, query GCP metadata server at 169.254.169.254 to retrieve default service account OAuth token",
+      "Use harvested service account token to enumerate GCP project: list buckets, instances, secrets, and IAM bindings",
+      "If default service account has Editor scope: create new service account keys, exfiltrate GCS bucket contents, access Secret Manager",
+      "Exploit confused-deputy flow via Cloud Build or Cloud Composer to escalate to high-privilege Cloud Build service account",
+      "Access source code, container images, and build artifacts \u2014 embed persistence in CI/CD pipeline or base images",
+      "Laterally move: deploy cryptominer workloads across cluster, or use access for DDoS botnet, data exfiltration, or infrastructure destruction"
+    ],
+    "indicators": {
+      "telemetry": [
+        "GCP Cloud Audit Log: instances.list, buckets.list, serviceAccounts.list called by unexpected principal",
+        "Metadata server access from container workload not matching known application behavior",
+        "New service account key creation (serviceAccounts.keys.create) by non-human principal",
+        "Cloud Build triggered outside normal CI/CD schedule or by unexpected invoker",
+        "GCS bucket accessed by service account from unexpected source IP or project",
+        "Sudden spike in compute resource consumption \u2014 CPU, GPU, network egress \u2014 consistent with cryptomining",
+        "New outbound network connections from GKE pods to mining pool endpoints or known C2 ranges"
+      ],
+      "behavioral": [
+        "Pods appearing in cluster not matching any known deployment or Helm release",
+        "Container images pulled from external registries not in approved image policy",
+        "Privileged container creation or host network/PID namespace access requested",
+        "GKE node SSH access or exec sessions outside maintenance windows",
+        "GCS bucket ACL changed to public or allUsers granted read access"
+      ],
+      "external": [
+        "Shodan or censys scan data showing GKE API server exposed on public IP",
+        "Cloud security newsletter or researcher reporting on TeamPCP-style worm targeting GKE",
+        "Wiz or Orca Security reporting on confused-deputy escalation in GCP Cloud Build or Composer",
+        "Threat intelligence on known mining pool endpoints or C2 domains in GCP egress",
+        "SENTRY monitor: GitHub repos publishing GKE exploitation scripts or metadata credential tooling"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "very-high",
+      "business_effects": [
+        "Uncontrolled cloud spend from cryptomining or botnet compute abuse",
+        "Source code, container images, and build secrets exfiltrated via Cloud Build compromise",
+        "CI/CD pipeline backdoored \u2014 all downstream deployments potentially compromised",
+        "GCS bucket data exposed \u2014 customer data, application configs, credentials",
+        "Customer-facing service disruption from resource exhaustion or workload deletion",
+        "Supply chain compromise if compromised images pushed to Artifact Registry serving customers"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on metadata server access from container workloads not matching application baseline",
+        "Alert on new service account key creation by non-CI/CD principals",
+        "Monitor for Cloud Build invocations outside approved schedule or by unexpected invoker",
+        "Flag public GCS bucket ACL changes and allUsers grants in real time",
+        "Alert on new outbound connections from GKE pods to known mining pool or C2 IP ranges",
+        "Monitor for privileged pod creation or host namespace access requests"
+      ],
+      "sentry": [
+        "Open case: GCP cloud-native worm / metadata credential abuse \u2014 GCP-01",
+        "Collect Cloud Audit Logs for affected project: compute, storage, IAM, and Cloud Build",
+        "Identify blast radius: all service account tokens issued in compromise window",
+        "Enumerate all GCS buckets accessed and data volume exfiltrated",
+        "Assess CI/CD pipeline integrity \u2014 determine if build artifacts or images were tampered"
+      ],
+      "command": [
+        "Display GCP project health: affected clusters, service accounts, and bucket exposure status",
+        "Surface CI/CD pipeline integrity status and artifact registry contamination risk",
+        "Coordinate service account key rotation and workload restart sequencing",
+        "Track compute cost spike in real time to bound cryptomining impact"
+      ],
+      "core": [
+        "Emit hybrid.cloud_worm_pivot and espionage.metadata_credential_theft events on confirmed indicators",
+        "Trigger automated service account key rotation workflow for affected accounts",
+        "Feed compromised image hashes into PHANTOM watch list for cross-tenant detection",
+        "Update GCP posture score: flag projects with default service account editor scope"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "gcp_workload_compromise_watch",
+      "sentry_case_type": "cloud_native_worm_gcp",
+      "command_view": "gcp_tenant_ops",
+      "core_event_types": [
+        "hybrid.cloud_worm_pivot",
+        "espionage.metadata_credential_theft",
+        "supply_chain.cicd_compromise",
+        "cloud_outage.resource_exhaustion"
+      ]
+    },
+    "confidence": 0.79,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "Wiz: cloud attacks and attack vectors \u2014 GCP metadata API abuse",
+      "Cloud Security Newsletter: 60k cloud servers wormed \u2014 TeamPCP Docker/K8s worm",
+      "Tenable TRA-2024-20: GCP Cloud Build confused-deputy privilege escalation",
+      "SentinelOne: GCP vulnerability management and workload attack vectors",
+      "Rhyno: Google Cloud and Microsoft Azure vulnerabilities patched 2024-2025"
+    ]
+  },
+  {
+    "scenario_id": "AZR-GCP-01",
+    "title": "Tenant-side disruption campaign mimicking data center outage \u2014 VM destruction, storage wipe, and reputation operation",
+    "family": "hybrid",
+    "status": "hypothetical",
+    "scope": {
+      "sector": [
+        "technology",
+        "finance",
+        "media",
+        "digital_government",
+        "saas"
+      ],
+      "geography": [
+        "Middle East",
+        "Europe",
+        "global \u2014 wherever target tenants operate on Azure or GCP"
+      ],
+      "assets": [
+        "Azure Virtual Machines and VM Scale Sets",
+        "Azure SQL and Cosmos DB",
+        "GCP Compute Engine instances",
+        "GCP Cloud SQL and Spanner",
+        "Azure Blob and GCS storage",
+        "BigQuery datasets",
+        "Autoscaling group configurations",
+        "NSG and firewall rule sets",
+        "Azure App Services and Cloud Run",
+        "Status pages and customer communication infrastructure"
+      ]
+    },
+    "threat_actor": {
+      "label": "Hacktivist crews or state-sponsored disruptive operators \u2014 black-hat actors with established tenant foothold",
+      "attribution": "low_confidence",
+      "motives": [
+        "Simulate regional cloud outage to amplify geopolitical narrative",
+        "Cause visible customer-facing disruption with attribution to cloud provider rather than attacker",
+        "Data destruction or ransom under cover of apparent infrastructure failure",
+        "Reputation operation: force media coverage of 'Azure/GCP data center down'"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "High-visibility enterprises and SaaS platforms on Azure or GCP in politically sensitive geographies",
+        "Organizations with over-privileged service principals or automation accounts",
+        "Tenants using default IAM roles without least-privilege enforcement"
+      ],
+      "secondary": [
+        "Organizations whose customers or partners would amplify outage narrative on social media",
+        "Platforms with public status pages that can be defaced or manipulated",
+        "Companies with weak change management \u2014 malicious config changes blend with legitimate ops"
+      ],
+      "high_value_conditions": [
+        "Attacker already has foothold via AiTM (AZR-01) or cloud worm (GCP-01) \u2014 this scenario is stage 4 of those chains",
+        "Service principal or automation account with Contributor or Owner role at subscription/project level",
+        "No resource locks on critical VMs, databases, or storage accounts",
+        "IaC pipelines with write access to production \u2014 compromise enables scripted destruction"
+      ]
+    },
+    "trigger_conditions": [
+      "Attacker has established tenant foothold via prior AiTM session theft (AZR-01) or metadata credential abuse (GCP-01)",
+      "Geopolitical escalation event creating motivation for visible retaliatory disruption",
+      "Hacktivist campaign targeting specific sector with announced disruption date",
+      "Concurrent regional cloud outage (e.g., AWS-ME-01) creating cover narrative \u2014 attacker times action to amplify confusion"
+    ],
+    "attack_path": [
+      "Attacker uses previously stolen service principal or session token with Contributor/Owner scope",
+      "Enumerate production VMs, databases, and storage \u2014 identify highest-impact targets for destruction or disruption",
+      "Modify or delete NSG/firewall rules to cut ingress/egress \u2014 triggers application-layer outage without touching compute",
+      "Stop or deallocate VMs at scale using Azure CLI / GCP gcloud \u2014 customers see service failure",
+      "Corrupt or delete autoscaling configurations \u2014 prevents automatic recovery",
+      "Encrypt or wipe critical database tables or storage containers/buckets \u2014 data destruction or ransom",
+      "Deface application front-ends or status pages with hacktivist messaging",
+      "Leak sample data on X/Telegram with claims 'Azure/GCP data center in [region] is compromised'",
+      "Run DDoS against surviving infrastructure and DNS during failover window \u2014 maximize confusion"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Azure Activity Log / GCP Cloud Audit: mass VM stop/deallocation or instance deletion outside maintenance window",
+        "NSG rule deletion or permissive all-traffic rule addition at subscription scope",
+        "Azure SQL / Cloud SQL: database drop or mass table truncation events",
+        "Storage account or GCS bucket deletion or public ACL change at scale",
+        "Autoscaling group minimum capacity set to zero or policy deleted",
+        "Resource lock removal on critical resources immediately before destructive action",
+        "Service principal activity from IP not in approved range or known CI/CD infrastructure",
+        "IaC pipeline triggered outside approved deployment window with destructive terraform/bicep operations"
+      ],
+      "behavioral": [
+        "Customer-facing services returning errors attributed to 'infrastructure unavailability' \u2014 no compute-layer alert from provider",
+        "Operations team receiving alerts across multiple services simultaneously \u2014 scope suggests scripted action not organic failure",
+        "Status page defaced or showing attacker-controlled messaging",
+        "Social media posts claiming data center outage appearing before internal alerts are generated",
+        "Recovery attempts blocked \u2014 autoscaling not launching, NSG preventing management access"
+      ],
+      "external": [
+        "Hacktivist Telegram or X posts claiming responsibility for Azure/GCP outage in specific region",
+        "Sample data posted as proof-of-access on paste sites or file sharing platforms",
+        "Downdetector spike for affected organization coinciding with hacktivist announcement",
+        "SENTRY monitor: claim posts with specific tenant or service names cross-referencing affected organization",
+        "Threat intelligence on hacktivist crew announcing disruption campaign against target sector"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "critical",
+      "business_effects": [
+        "Customer-facing service outage indistinguishable from infrastructure failure \u2014 attribution delayed",
+        "Data destruction or encryption requiring recovery from backup \u2014 RTO/RPO obligations stressed",
+        "Reputational damage amplified by attacker-controlled narrative blaming cloud provider",
+        "Regulatory breach notification if data destroyed or exfiltrated",
+        "Recovery costs \u2014 emergency engineering, data restoration, forensics, legal",
+        "Long-term trust damage if customers believe cloud infrastructure is fundamentally unreliable"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert immediately on mass VM stop/delete or instance deallocation outside change window",
+        "Alert on NSG or firewall rule deletion at subscription or project scope",
+        "Monitor for service principal activity from anomalous IPs with destructive API calls",
+        "Flag IaC pipeline executions outside approved window with resource deletion operations",
+        "Correlate external hacktivist claims with internal telemetry to accelerate attribution",
+        "Trigger automatic resource lock enforcement on critical assets during escalated watch states"
+      ],
+      "sentry": [
+        "Open case: tenant disruption campaign \u2014 AZR-GCP-01",
+        "Collect Azure Activity Log and GCP Cloud Audit trail for 48-hour window preceding incident",
+        "Identify initial access vector \u2014 link to AZR-01 (AiTM) or GCP-01 (worm) case if applicable",
+        "Document attacker-controlled narrative: screenshots of hacktivist claims and timing relative to internal events",
+        "Coordinate with cloud provider security team for infrastructure-layer confirmation and log access"
+      ],
+      "command": [
+        "Activate tenant disruption operational view \u2014 show affected resources, recovery status, and attacker narrative",
+        "Separate infrastructure failure from tenant-side attack in customer and executive communications",
+        "Coordinate resource restoration sequencing: NSG rules first, then compute, then data recovery",
+        "Manage customer communications \u2014 proactively distinguish attacker-caused disruption from provider outage"
+      ],
+      "core": [
+        "Emit hybrid.tenant_disruption_campaign event with linked AZR-01 or GCP-01 case if chain confirmed",
+        "Trigger emergency resource lock enforcement workflow across affected subscription/project",
+        "Feed attacker service principal and IP indicators into PHANTOM real-time block list",
+        "Update tenant resilience score: flag absence of resource locks, IaC change controls, and least-privilege enforcement"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "tenant_disruption_watch",
+      "sentry_case_type": "hybrid_tenant_disruption",
+      "command_view": "azure_gcp_disruption_ops",
+      "core_event_types": [
+        "hybrid.tenant_disruption_campaign",
+        "cloud_outage.tenant_induced",
+        "influence_ops.false_outage_narrative",
+        "hack_and_leak.data_destruction"
+      ]
+    },
+    "confidence": 0.58,
+    "last_updated": "2026-04-08",
+    "sources": [
+      "Wiz: cloud attack vectors \u2014 VM deletion, storage wipe, autoscaling abuse",
+      "SentinelOne: GCP vulnerability management \u2014 data ops attack patterns",
+      "CyberPress: cloud platforms targeted by enterprises \u2014 AiTM and disruption chains",
+      "Cyberlearn: cloud security best practices \u2014 Azure/GCP IAM over-privilege patterns",
+      "CyberLearn: cloud attack surface mapping for AWS, Azure, GCP"
+    ]
+  }
+]

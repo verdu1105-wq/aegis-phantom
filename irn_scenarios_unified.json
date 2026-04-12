@@ -1,0 +1,1007 @@
+[
+  {
+    "scenario_id": "IRN-01",
+    "title": "DDoS against public-facing tech platforms and customer portals",
+    "family": "sdos",
+    "status": "watch",
+    "scope": {
+      "sector": ["technology", "telecom", "saas", "hosting", "dns_providers"],
+      "geography": ["global", "United States", "Europe", "Middle East"],
+      "assets": [
+        "Public websites and customer portals",
+        "API endpoints and login services",
+        "VPN concentrators",
+        "DNS infrastructure",
+        "CDN and WAF layers",
+        "Content delivery networks"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-affiliated hacktivists and state-aligned operators",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Immediate geopolitical signaling",
+        "Retaliation for sanctions or military action",
+        "Public disruption for media attention",
+        "Demonstrate offensive capability"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "SaaS providers with high public visibility",
+        "Telecom operators and hosting firms",
+        "Consumer platforms with large user bases",
+        "DNS-dependent services"
+      ],
+      "secondary": [
+        "CDN providers serving targeted platforms",
+        "API gateway infrastructure",
+        "Authentication and login endpoints"
+      ],
+      "high_value_conditions": [
+        "Organization publicly associated with US or Israeli government contracts",
+        "Platform with high media visibility creating amplification value",
+        "Service with known DDoS mitigation gaps or CDN single points of failure",
+        "DNS infrastructure without anycast redundancy"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation event involving Iran and Western or Gulf state actors",
+      "US or allied military action against Iranian assets",
+      "New sanctions package targeting Iranian government or IRGC",
+      "Public attribution of Iranian cyber operation by US government",
+      "Anniversary of significant geopolitical event"
+    ],
+    "attack_path": [
+      "Hacktivist coordination via Telegram channels — target list published, tool distributed",
+      "Botnet traffic floods against websites, APIs, and login endpoints",
+      "VPN concentrators and DNS-exposed services targeted for amplification",
+      "Rotating IP ranges bypass simple blocklist defenses",
+      "Coordinated claims posted on Telegram and X to maximize media attention",
+      "DDoS sustained until media coverage achieved or defender mitigates"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Volumetric traffic spike — 10x or greater above baseline",
+        "Repeated requests from rotating IP ranges across multiple ASNs",
+        "Degraded CDN and WAF performance metrics",
+        "DNS query flood against authoritative resolvers",
+        "SYN flood patterns against TCP services",
+        "UDP amplification traffic from reflection sources"
+      ],
+      "behavioral": [
+        "Customer-facing services returning 503 or timing out",
+        "CDN edge nodes reaching capacity limits",
+        "WAF rate limiting triggering at scale",
+        "Support ticket volume surge from customers reporting outages",
+        "Engineering team escalation outside normal hours"
+      ],
+      "external": [
+        "Coordinated DDoS claims on Telegram channels linked to Iran-affiliated hacktivists",
+        "X/Twitter posts from hacktivist personas announcing operation",
+        "Target lists published in hacktivist forums matching affected organizations",
+        "Threat intelligence reporting on active Iran-affiliated DDoS campaign",
+        "CISA or sector ISAC advisory on ongoing volumetric attack campaign"
+      ]
+    },
+    "impact": {
+      "likelihood": "high",
+      "severity": "medium",
+      "business_effects": [
+        "Service outages affecting customer-facing platforms",
+        "Lost transactions during outage window",
+        "Support team surge and emergency engineering costs",
+        "Reputational pressure from public outage visibility",
+        "SLA breach obligations to enterprise customers"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor Telegram and X for Iran-affiliated hacktivist DDoS announcements targeting sector",
+        "Alert on volumetric traffic anomalies exceeding 5x baseline",
+        "Track coordinated claims that name specific organizations as targets",
+        "Correlate attack timing with geopolitical escalation events"
+      ],
+      "sentry": [
+        "Open case on confirmed DDoS campaign — link to hacktivist group and claimed targets",
+        "Collect traffic telemetry, CDN logs, and WAF block reports",
+        "Document claim posts with timestamps for post-incident attribution",
+        "Track attack duration and intensity for insurance and legal purposes"
+      ],
+      "command": [
+        "Activate DDoS operational view — show affected services, mitigation status, and customer impact",
+        "Coordinate crisis communications from unified command",
+        "Track CDN failover and scrubbing center activation status",
+        "Manage executive and customer communication cadence"
+      ],
+      "core": [
+        "Emit sdos.volumetric_attack event on confirmed DDoS",
+        "Feed attacker IP ranges into PHANTOM real-time block list",
+        "Trigger DDoS runbook activation workflow",
+        "Update threat posture score for affected organizations"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "iran_ddos_watch",
+      "sentry_case_type": "sdos_iran_affiliated",
+      "command_view": "ddos_ops",
+      "core_event_types": [
+        "sdos.volumetric_attack",
+        "sdos.dns_flood",
+        "sdos.hacktivist_claim"
+      ]
+    },
+    "confidence": 0.82,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA advisories on Iran-affiliated DDoS activity 2023-2026",
+      "Mandiant and CrowdStrike reporting on Iran hacktivist operations",
+      "FBI and CISA joint advisories on Iranian cyber threats to critical infrastructure"
+    ]
+  },
+  {
+    "scenario_id": "IRN-02",
+    "title": "Hack-and-leak campaign against a technology company",
+    "family": "hack_and_leak",
+    "status": "watch",
+    "scope": {
+      "sector": ["technology", "ai_ml", "cloud_providers", "software_vendors", "defense_adjacent"],
+      "geography": ["United States", "Israel", "Europe", "global"],
+      "assets": [
+        "Executive email accounts",
+        "Corporate file stores and SharePoint",
+        "Source code repositories",
+        "Customer data stores",
+        "Internal communications platforms",
+        "Cloud storage buckets"
+      ]
+    },
+    "threat_actor": {
+      "label": "APT35 and APT42-style operators — Iran IRGC Intelligence Organization",
+      "attribution": "high_confidence",
+      "motives": [
+        "Embarrassment and reputational damage to target",
+        "Coercion of leadership or customers",
+        "Influence operations using leaked material",
+        "Intelligence collection as secondary objective"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Cloud providers with US government or defense contracts",
+        "AI research firms with dual-use technology",
+        "Software vendors supplying defense or intelligence community",
+        "Executive email and file stores at high-profile technology companies"
+      ],
+      "secondary": [
+        "Legal counsel and board members of primary targets",
+        "Investors and major customers of primary targets",
+        "Journalists covering primary target organizations"
+      ],
+      "high_value_conditions": [
+        "Organization with public political association or government ties",
+        "Executive who has publicly commented on Iran policy",
+        "Company with sensitive customer list including government agencies",
+        "Organization with recent public controversy that amplifies leak value"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation involving Iran",
+      "Public statement by company leadership critical of Iranian government",
+      "Organization awarded high-profile US government or defense contract",
+      "Iranian nuclear negotiations breakdown or related diplomatic event"
+    ],
+    "attack_path": [
+      "Spearphishing campaign targeting executives, IT administrators, and engineers",
+      "Credential theft via phishing page or MFA fatigue attack on target accounts",
+      "Token theft or OAuth grant abuse for persistent mailbox and drive access",
+      "Mailbox forwarding rules created to siphon ongoing communications",
+      "Large-scale archive download from SharePoint, OneDrive, and email stores",
+      "Data staged on attacker-controlled infrastructure for selective disclosure",
+      "Leak published via persona accounts with coordinated amplification on X and Telegram"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Suspicious OAuth application consent granted by privileged account",
+        "Impossible travel — authentication from two geographies within minutes",
+        "Mailbox forwarding rule created outside normal business hours",
+        "Bulk download from SharePoint or OneDrive not matching user work patterns",
+        "Archive or ZIP creation from file store followed by external transfer",
+        "New inbox rules deleting or moving security alert emails"
+      ],
+      "behavioral": [
+        "Executive reports not recognizing a successful sign-in event",
+        "Security alert emails missing from inbox post-compromise",
+        "Unfamiliar OAuth apps appearing in tenant app registrations",
+        "Large data transfers to unknown external destinations in audit logs",
+        "Extortion contact from actor threatening to publish stolen data"
+      ],
+      "external": [
+        "Leak announcement on Telegram or X from Iran-linked persona account",
+        "Sample documents published as proof-of-access with metadata inconsistencies",
+        "Journalist outreach from unknown contacts claiming to have company documents",
+        "Threat intelligence reporting on APT35 or APT42 targeting company sector",
+        "SENTRY Monitor: synchronized bot amplification of leak claims"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "high",
+      "business_effects": [
+        "Legal exposure from leaked confidential customer or business data",
+        "Customer churn following public disclosure of breach",
+        "Board and investor pressure demanding executive accountability",
+        "Regulatory investigation triggered by data exposure",
+        "Reputational damage amplified by media coverage of leak",
+        "Emergency legal and PR costs for response"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on impossible travel events for executive and privileged accounts",
+        "Monitor for new OAuth app consents by admin accounts",
+        "Flag mailbox forwarding rule creation within 60 minutes of authentication",
+        "Alert on bulk SharePoint or OneDrive downloads outside business hours",
+        "Monitor X and Telegram for leak claims referencing organization or sector"
+      ],
+      "sentry": [
+        "Open case on confirmed hack-and-leak — collect OAuth, mailbox, and download audit trail",
+        "Identify all accounts and data stores accessed in compromise window",
+        "Document leak claims and publication timeline for legal response",
+        "Coordinate with legal counsel on notification obligations",
+        "Preserve evidence chain for law enforcement referral"
+      ],
+      "command": [
+        "Activate hack-and-leak operational view — account compromise status and data exposure scope",
+        "Coordinate legal, PR, and security response from unified command",
+        "Track media coverage and amplification of leak claims",
+        "Manage customer and regulator notification sequencing"
+      ],
+      "core": [
+        "Emit hack_and_leak.credential_theft and hack_and_leak.exfiltration events",
+        "Trigger token revocation workflow for all compromised accounts",
+        "Feed attacker OAuth app IDs into PHANTOM block list",
+        "Update organizational risk score based on data exposure scope"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "apt35_apt42_watch",
+      "sentry_case_type": "hack_and_leak_iran",
+      "command_view": "leak_response_ops",
+      "core_event_types": [
+        "hack_and_leak.credential_theft",
+        "hack_and_leak.exfiltration",
+        "hack_and_leak.public_disclosure",
+        "identity.oauth_consent_anomaly"
+      ]
+    },
+    "confidence": 0.85,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "Google TAG and Mandiant reporting on APT35 and APT42 operations",
+      "Microsoft MSTIC reporting on Iranian threat actor credential theft campaigns",
+      "CISA and FBI joint advisories on Iranian government-sponsored cyber operations"
+    ]
+  },
+  {
+    "scenario_id": "IRN-03",
+    "title": "Long-dwell espionage in cloud and identity planes",
+    "family": "espionage",
+    "status": "watch",
+    "scope": {
+      "sector": ["technology", "telecom", "defense_adjacent", "saas", "msp", "data_center"],
+      "geography": ["United States", "Middle East", "Europe", "Israel"],
+      "assets": [
+        "Microsoft 365 and Entra ID tenants",
+        "VPN and remote access infrastructure",
+        "Cloud management consoles",
+        "Managed service provider tooling",
+        "Enterprise SaaS platforms",
+        "Legacy authentication endpoints"
+      ]
+    },
+    "threat_actor": {
+      "label": "MuddyWater, APT34, and APT35-linked operators — Iran Ministry of Intelligence and IRGC",
+      "attribution": "high_confidence",
+      "motives": [
+        "Strategic intelligence collection for Iranian government",
+        "Pre-positioning for potential disruptive operations",
+        "Long-term access maintenance across target organizations",
+        "Supply chain access via MSP and SaaS provider compromise"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Defense-related technology firms",
+        "Telecom operators with government contracts",
+        "Managed service providers serving government or defense sectors",
+        "Enterprise SaaS platforms with sensitive customer data",
+        "Regional data center operators in Gulf states"
+      ],
+      "secondary": [
+        "Legal, financial, and consulting firms serving primary targets",
+        "Academic institutions with defense research programs",
+        "Think tanks and policy organizations"
+      ],
+      "high_value_conditions": [
+        "Organization serving US government, DoD, or intelligence community customers",
+        "MSP with administrative access to multiple high-value downstream environments",
+        "Telecom with access to communications metadata",
+        "SaaS platform storing sensitive government or defense customer data"
+      ]
+    },
+    "trigger_conditions": [
+      "Sustained Iranian strategic intelligence collection campaign",
+      "Iranian government prioritization of specific technology or policy sector",
+      "Access opportunity via newly discovered vulnerability in target infrastructure",
+      "Geopolitical event elevating intelligence collection priority"
+    ],
+    "attack_path": [
+      "Password spraying against O365, Entra ID, VPN, and Citrix endpoints",
+      "Phishing targeting IT administrators, engineers, and remote access users",
+      "Exploitation of public-facing applications — VPN appliances, web apps",
+      "Abuse of trusted cloud services for command and control — OneDrive, Google Drive",
+      "Persistence via legacy authentication protocols bypassing MFA",
+      "Anomalous admin role assignments to maintain elevated access",
+      "Covert tunneling through legitimate cloud services to avoid detection",
+      "Lateral movement across SaaS tenants using harvested credentials"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Legacy authentication protocol spikes — IMAP, POP3, SMTP auth against M365",
+        "Password spray pattern — distributed low-and-slow attempts across many accounts",
+        "Anomalous admin role assignment by non-standard principal",
+        "Unusual service principal creation or modification",
+        "Covert tunneling via cloud storage API — OneDrive, Dropbox, Google Drive",
+        "Persistence across multiple SaaS tenants from same credential set",
+        "VPN authentication from unusual geographies or ASNs"
+      ],
+      "behavioral": [
+        "IT administrator reports unexpected role changes or unfamiliar service principals",
+        "Security team detects impossible travel on privileged accounts",
+        "Anomalous data access patterns — reading files outside normal work scope",
+        "Cloud audit logs showing access from unexpected IP ranges",
+        "Conditional access policy bypass via legacy auth or token abuse"
+      ],
+      "external": [
+        "CISA or NSA advisory on MuddyWater or APT34 targeting specific sector",
+        "Threat intelligence on Iranian password spray campaign against target industry",
+        "FBI notification of Iranian intrusion activity against similar organizations",
+        "Peer organization disclosure of Iranian espionage intrusion",
+        "SENTRY Monitor: GitHub tooling associated with Iranian operators"
+      ]
+    },
+    "impact": {
+      "likelihood": "high",
+      "severity": "high",
+      "business_effects": [
+        "Silent long-term data loss — intellectual property and sensitive communications",
+        "Supply chain exposure through MSP or SaaS provider compromise",
+        "Pre-positioned access enabling future disruptive operations",
+        "Regulatory and contractual breach if government data accessed",
+        "Loss of competitive advantage from stolen strategic information"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on legacy authentication spikes against M365 and Exchange",
+        "Monitor for password spray patterns — distributed attempts below lockout threshold",
+        "Flag anomalous admin role assignments and service principal creation",
+        "Alert on cloud storage API usage patterns consistent with C2 tunneling",
+        "Monitor for impossible travel on privileged and administrative accounts"
+      ],
+      "sentry": [
+        "Open case on confirmed long-dwell access — establish compromise timeline",
+        "Identify all accounts, tenants, and data stores touched during dwell period",
+        "Map lateral movement across SaaS platforms and MSP tooling",
+        "Coordinate with affected downstream customers if MSP compromise confirmed",
+        "Preserve forensic evidence for law enforcement and regulatory disclosure"
+      ],
+      "command": [
+        "Activate espionage response operational view — dwell period and scope assessment",
+        "Track all accounts requiring remediation across affected tenants",
+        "Coordinate MSP customer notification if supply chain exposure confirmed",
+        "Manage classified and sensitive disclosure obligations"
+      ],
+      "core": [
+        "Emit espionage.long_dwell_access and espionage.lateral_movement events",
+        "Trigger conditional access policy hardening workflow",
+        "Disable legacy authentication protocols across affected tenants",
+        "Update MSP risk score and downstream customer exposure assessment"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "muddywater_apt34_watch",
+      "sentry_case_type": "espionage_long_dwell_iran",
+      "command_view": "espionage_response_ops",
+      "core_event_types": [
+        "espionage.long_dwell_access",
+        "espionage.lateral_movement",
+        "espionage.legacy_auth_abuse",
+        "espionage.c2_tunneling"
+      ]
+    },
+    "confidence": 0.88,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA advisory AA22-055A on MuddyWater Iranian government-sponsored actors",
+      "Microsoft MSTIC reporting on APT34 and PHOSPHORUS operations",
+      "NSA and CISA joint advisory on Iranian government-sponsored advanced persistent threat"
+    ]
+  },
+  {
+    "scenario_id": "IRN-04",
+    "title": "Ransomware-style intrusion with political messaging",
+    "family": "ransomware",
+    "status": "watch",
+    "scope": {
+      "sector": ["healthcare", "municipal_government", "industrial", "mid_market_enterprise"],
+      "geography": ["United States", "Israel", "Albania", "Europe"],
+      "assets": [
+        "Windows domain infrastructure",
+        "File servers and network shares",
+        "Backup systems",
+        "Database servers",
+        "Email systems",
+        "Edge and VPN appliances"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-affiliated actors including IRGC-linked groups and state-crime collaboration — DEV-0270, Agrius",
+      "attribution": "high_confidence",
+      "motives": [
+        "Operational disruption of target organization",
+        "Confusion and coercion masking intelligence collection",
+        "Cover for data theft under guise of ransomware",
+        "Geopolitical messaging via ideological ransom note"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Healthcare organizations with weak EDR coverage",
+        "Municipal governments and public sector entities",
+        "Industrial suppliers to defense or government sectors",
+        "Mid-market enterprises with under-resourced security teams"
+      ],
+      "secondary": [
+        "Organizations with known backup gaps or recovery weaknesses",
+        "Entities with public political associations making them symbolic targets",
+        "Companies in sectors subject to Iranian geopolitical grievances"
+      ],
+      "high_value_conditions": [
+        "Organization with no tested disaster recovery plan",
+        "Flat network with no east-west segmentation",
+        "Backup systems connected to production domain",
+        "EDR coverage gaps — unmanaged endpoints or legacy systems without agents"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation requiring Iranian retaliatory demonstration",
+      "Target organization publicly associated with US, Israeli, or Gulf state interests",
+      "Albanian or other state hosting of Iranian opposition group MEK",
+      "Iranian government seeking to demonstrate disruptive capability"
+    ],
+    "attack_path": [
+      "Initial access via phishing or exploitation of edge vulnerabilities — VPN, Exchange, RDP",
+      "Establish foothold and disable or tamper with security tooling",
+      "Credential dumping — LSASS, SAM database, domain controller extraction",
+      "Lateral movement via SMB, RDP, and WMI across domain",
+      "Data exfiltration prior to encryption — files, databases, email archives",
+      "Selective encryption or wiping — sometimes wiper deployed instead of ransomware",
+      "Ransom note with ideological messaging rather than standard criminal demand",
+      "Stolen data threatened for publication to amplify operational impact"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Credential dumping tools — Mimikatz, ProcDump against LSASS",
+        "Unusual SMB lateral movement across domain — new source to destination pairs",
+        "RDP connections from workstations to servers outside normal patterns",
+        "Mass file archiving — ZIP or RAR creation across file servers",
+        "Security tool tampering — AV disabled, EDR agent stopped or uninstalled",
+        "Volume shadow copy deletion — vssadmin delete shadows",
+        "Backup job failures or backup server access from unusual principals"
+      ],
+      "behavioral": [
+        "Ransom note or wiper message with ideological or political content",
+        "Multiple systems simultaneously unavailable across different business units",
+        "Domain controller inaccessible — authentication failures across organization",
+        "Backup restoration attempts failing — backup data encrypted or deleted",
+        "IT team reports unable to remote into systems across the environment"
+      ],
+      "external": [
+        "Iran-linked actor claim of responsibility on Telegram or X",
+        "Leak site posting of data stolen from target organization",
+        "FBI or CISA flash advisory on Iranian ransomware-style campaign",
+        "Peer organization in same sector reporting similar intrusion",
+        "Threat intelligence on DEV-0270 or Agrius targeting sector"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "high",
+      "business_effects": [
+        "Operational outage across affected systems for days to weeks",
+        "Recovery costs — IR firm, system rebuild, data restoration",
+        "Data breach notification obligations from exfiltrated data",
+        "Regulatory scrutiny in healthcare and government sectors",
+        "Reputational damage and customer trust erosion"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Alert on credential dumping tool signatures — LSASS access, ProcDump",
+        "Monitor for mass file archiving activity across file servers",
+        "Alert on volume shadow copy deletion commands",
+        "Flag security tool tampering — AV and EDR agent stop events",
+        "Monitor backup system access from non-backup principals"
+      ],
+      "sentry": [
+        "Open critical incident case — activate ransomware response protocol",
+        "Engage IR firm immediately — preserve forensic evidence before remediation",
+        "Assess data exfiltration scope before focusing on recovery",
+        "Document ransom note and ideological messaging for attribution",
+        "Coordinate law enforcement notification — FBI field office"
+      ],
+      "command": [
+        "Activate ransomware incident operational view — affected systems and recovery status",
+        "Track containment progress — isolated vs still-connected systems",
+        "Coordinate executive, customer, and regulatory communications",
+        "Manage recovery sequencing — critical systems prioritized"
+      ],
+      "core": [
+        "Emit ransomware.encryption_event and ransomware.wiper_deployed events",
+        "Trigger network segmentation enforcement workflow",
+        "Activate offline backup assessment and restoration planning",
+        "Feed IOCs into PHANTOM real-time detection"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "iran_ransomware_watch",
+      "sentry_case_type": "ransomware_iran_affiliated",
+      "command_view": "ransomware_incident_ops",
+      "core_event_types": [
+        "ransomware.encryption_event",
+        "ransomware.wiper_deployed",
+        "ransomware.credential_dump",
+        "ransomware.lateral_movement"
+      ]
+    },
+    "confidence": 0.78,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "Microsoft MSTIC reporting on DEV-0270 Iranian ransomware operations",
+      "SentinelOne reporting on Agrius wiper and ransomware campaigns",
+      "CISA and FBI advisory on Iranian government-sponsored ransomware activity",
+      "Albania cyberattack attribution reporting 2022"
+    ]
+  },
+  {
+    "scenario_id": "IRN-05",
+    "title": "OT/ICS intrusion against water or energy operations",
+    "family": "ot_ics",
+    "status": "active",
+    "scope": {
+      "sector": ["water_wastewater", "energy", "industrial", "critical_infrastructure"],
+      "geography": ["United States", "Israel", "Europe", "Gulf states"],
+      "assets": [
+        "Internet-exposed HMI interfaces",
+        "Programmable Logic Controllers (PLCs)",
+        "SCADA systems",
+        "Remote access and VPN for OT networks",
+        "Engineering workstations",
+        "Historian servers"
+      ]
+    },
+    "threat_actor": {
+      "label": "IRGC-affiliated operators — CyberAv3ngers and linked activity",
+      "attribution": "confirmed",
+      "motives": [
+        "Localized physical disruption of water or energy infrastructure",
+        "Symbolic retaliation against Western or Israeli-linked targets",
+        "Public fear and media attention",
+        "Demonstration of capability to threaten critical infrastructure"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Water and wastewater treatment facilities with internet-exposed HMIs",
+        "Energy facilities using exposed remote access with default credentials",
+        "Industrial facilities using Unitronics or similar PLCs accessible via internet",
+        "Small to mid-size utilities with limited OT security resources"
+      ],
+      "secondary": [
+        "Larger utility operators with IT-OT convergence points",
+        "Engineering firms providing remote support to water or energy facilities",
+        "Supply chain vendors with remote access to OT environments"
+      ],
+      "high_value_conditions": [
+        "HMI or PLC directly internet-accessible without VPN",
+        "Default or weak credentials on remote access or PLC interface",
+        "IT and OT networks bridged without segmentation",
+        "No change monitoring or alerting on PLC configuration",
+        "Israeli-made or managed equipment creating symbolic target value"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical escalation involving Iran and Israel or United States",
+      "Israeli military action in Gaza or Lebanon conflict escalation",
+      "US military action or sanctions targeting Iranian interests",
+      "IRGC leadership decision to demonstrate critical infrastructure reach"
+    ],
+    "attack_path": [
+      "Scan for internet-exposed HMI interfaces and PLC remote access ports",
+      "Exploit default credentials on Unitronics, Siemens, or other exposed PLCs",
+      "Access HMI via internet-exposed remote desktop or web interface",
+      "Modify PLC programming or set points to cause operational disruption",
+      "Deface HMI display with ideological messaging",
+      "Optionally pivot from IT network to OT via connected engineering workstations",
+      "Claim responsibility on Telegram with screenshots of HMI access"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Unexpected PLC mode changes — run to program mode transitions",
+        "HMI display changes inconsistent with operator activity",
+        "Unauthorized firmware or configuration changes on PLCs",
+        "Loss of view or loss of control alarms from field devices",
+        "Remote access sessions to OT network from unknown external IPs",
+        "Engineering workstation accessing PLC outside maintenance windows"
+      ],
+      "behavioral": [
+        "Operators report HMI showing unexpected values or foreign language messages",
+        "Physical process anomalies inconsistent with setpoint changes",
+        "Safety systems triggering without corresponding process event",
+        "Remote access logs showing connections outside normal maintenance schedules",
+        "PLC vendor remote support access not scheduled by internal team"
+      ],
+      "external": [
+        "CyberAv3ngers Telegram post claiming OT facility access with HMI screenshot",
+        "CISA advisory on Iranian actors targeting water sector HMI devices",
+        "FBI notification of Iranian scanning activity against water sector IP ranges",
+        "Peer utility reporting similar intrusion attempt or compromise",
+        "Shodan or Censys data showing organization HMI newly internet-exposed"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium",
+      "severity": "very-high",
+      "business_effects": [
+        "Manual operations required — loss of automated process control",
+        "Service interruption for water or energy customers",
+        "Safety review and regulatory reporting obligations",
+        "Physical process disruption — chemical dosing, pressure, flow anomalies",
+        "Public fear and media attention amplifying operational impact",
+        "Extended recovery if PLC firmware corrupted or replaced"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor for CyberAv3ngers Telegram announcements targeting water or energy sector",
+        "Alert on remote access sessions to OT network from external IPs",
+        "Flag PLC mode changes or configuration modifications outside maintenance windows",
+        "Monitor Shodan and Censys for newly exposed HMI interfaces in sector",
+        "Alert on engineering workstation access to PLCs outside scheduled maintenance"
+      ],
+      "sentry": [
+        "Open critical OT incident case — notify CISA immediately per sector reporting requirements",
+        "Preserve PLC configuration backups and audit logs before any remediation",
+        "Engage ICS-specialized incident response firm",
+        "Document HMI screenshots and CyberAv3ngers claim posts for attribution",
+        "Coordinate with FBI and CISA on law enforcement response"
+      ],
+      "command": [
+        "Activate OT incident operational view — affected systems, manual operations status",
+        "Track safety system status and physical process parameters",
+        "Coordinate regulatory notification — EPA, NERC, state agencies",
+        "Manage public communications if service disruption affects customers"
+      ],
+      "core": [
+        "Emit ot_ics.hmi_compromise and ot_ics.plc_modification events",
+        "Trigger OT isolation workflow — remove affected systems from internet",
+        "Activate backup PLC configuration restoration procedure",
+        "Feed CyberAv3ngers IOCs into PHANTOM detection"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "cyberav3ngers_ot_watch",
+      "sentry_case_type": "ot_ics_iran_irgc",
+      "command_view": "ot_incident_ops",
+      "core_event_types": [
+        "ot_ics.hmi_compromise",
+        "ot_ics.plc_modification",
+        "ot_ics.remote_access_anomaly",
+        "ot_ics.loss_of_control"
+      ]
+    },
+    "confidence": 0.94,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA advisory AA23-335A on IRGC CyberAv3ngers targeting water sector PLCs",
+      "FBI and EPA joint advisory on Iranian actors targeting water systems",
+      "CISA advisory AA24-011A on Unitronics PLC exploitation by Iranian actors",
+      "Multiple confirmed CyberAv3ngers incidents at US water utilities 2023-2024"
+    ]
+  },
+  {
+    "scenario_id": "IRN-06",
+    "title": "Supply-chain compromise through MSPs or trusted vendors",
+    "family": "supply_chain",
+    "status": "watch",
+    "scope": {
+      "sector": ["msp", "software_integrators", "telecom", "infrastructure_contractors"],
+      "geography": ["United States", "Middle East", "Europe", "global"],
+      "assets": [
+        "MSP remote management and monitoring tooling",
+        "RMM platforms — ConnectWise, Kaseya, N-able",
+        "Vendor VPN and remote access credentials",
+        "Software build and deployment pipelines",
+        "Shared customer environment access",
+        "Vendor service account credentials"
+      ]
+    },
+    "threat_actor": {
+      "label": "Espionage-focused Iranian clusters — APT34, MuddyWater, and related operators",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Broad downstream access to multiple customer environments via single compromise",
+        "Stealth through trusted vendor relationships",
+        "Intelligence collection at scale across MSP customer base",
+        "Leverage trusted remote access channels to avoid detection"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Managed service providers with broad customer access",
+        "Software integrators with deployment access to customer environments",
+        "Telecom and infrastructure contractors with network access",
+        "IT outsourcing firms serving government or defense sector customers"
+      ],
+      "secondary": [
+        "Downstream MSP customers — especially government, defense, and critical infrastructure",
+        "Software vendors whose update pipeline the MSP manages",
+        "Cloud providers with MSP partner access programs"
+      ],
+      "high_value_conditions": [
+        "MSP managing 50 or more customer environments with admin access",
+        "MSP serving government, defense, or critical infrastructure customers",
+        "Vendor with standing remote access credentials to customer production systems",
+        "Software integrator with code signing certificates or deployment pipeline access"
+      ]
+    },
+    "trigger_conditions": [
+      "Iranian strategic intelligence collection campaign targeting specific industry sector",
+      "Discovery of MSP with access to high-value downstream customers",
+      "Opportunity via phishing of MSP technical staff",
+      "Exploitation of RMM platform vulnerability creating access opportunity"
+    ],
+    "attack_path": [
+      "Compromise MSP credentials via phishing or credential stuffing against RMM platform",
+      "Authenticate to RMM platform using stolen MSP technician credentials",
+      "Enumerate MSP customer list and assess downstream access scope",
+      "Pivot through remote administration channels into customer environments",
+      "Establish persistence in customer environments using legitimate MSP tooling",
+      "Collect intelligence from customer environments — email, files, credentials",
+      "Maintain access across multiple customers simultaneously using MSP tooling cover"
+    ],
+    "indicators": {
+      "telemetry": [
+        "RMM platform access outside normal maintenance windows or business hours",
+        "Concurrent RMM sessions across multiple customer environments from single technician account",
+        "Vendor service account accessing customer systems from unexpected IP or geography",
+        "New scripts or tools deployed via RMM platform to customer systems",
+        "MSP technician account authentication from multiple geographies simultaneously"
+      ],
+      "behavioral": [
+        "Customer systems show activity attributed to vendor account outside scheduled maintenance",
+        "MSP reports technician credentials used without their knowledge",
+        "Multiple customers reporting similar anomalous activity traced to same vendor account",
+        "RMM audit logs showing bulk customer environment enumeration"
+      ],
+      "external": [
+        "Threat intelligence on Iranian actors targeting RMM platforms or MSP sector",
+        "CISA advisory on supply chain compromise via managed service providers",
+        "MSP peer reporting similar credential compromise or suspicious RMM activity",
+        "RMM vendor security advisory on credential-based attack against platform"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "very-high",
+      "business_effects": [
+        "Multi-customer incident — single compromise enables broad downstream exposure",
+        "Cascading compromise across MSP customer base",
+        "Major trust damage — customers question MSP security posture",
+        "Regulatory breach notification obligations across all affected customers",
+        "MSP liability exposure from downstream customer impact",
+        "Recovery requires coordinated response across all affected environments"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor RMM platform audit logs for access outside maintenance windows",
+        "Alert on concurrent customer environment sessions from single technician account",
+        "Flag vendor account authentication from unexpected geographies",
+        "Monitor for bulk customer enumeration via RMM APIs",
+        "Alert on new script or tool deployment to customer systems via RMM"
+      ],
+      "sentry": [
+        "Open supply chain incident case — identify all affected downstream customers immediately",
+        "Revoke all compromised vendor credentials and RMM session tokens",
+        "Enumerate all customer environments accessed during compromise window",
+        "Coordinate parallel incident response across all affected customers",
+        "Notify affected customers, regulators, and law enforcement"
+      ],
+      "command": [
+        "Activate supply chain incident operational view — MSP and downstream customer status",
+        "Track remediation progress across all affected customer environments",
+        "Coordinate customer communications — consistent messaging across all affected parties",
+        "Manage regulatory notification sequencing across multiple customer jurisdictions"
+      ],
+      "core": [
+        "Emit supply_chain.msp_compromise and supply_chain.downstream_pivot events",
+        "Trigger vendor access revocation across all customer environments",
+        "Flag all customers of compromised MSP for elevated monitoring",
+        "Update supply chain risk scores for affected MSP and downstream customers"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "msp_supply_chain_watch",
+      "sentry_case_type": "supply_chain_iran_msp",
+      "command_view": "supply_chain_incident_ops",
+      "core_event_types": [
+        "supply_chain.msp_compromise",
+        "supply_chain.downstream_pivot",
+        "supply_chain.rmm_abuse",
+        "supply_chain.credential_theft"
+      ]
+    },
+    "confidence": 0.72,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "CISA and FBI advisory on Iranian actors targeting managed service providers",
+      "Mandiant reporting on APT34 supply chain operations",
+      "Microsoft MSTIC reporting on Iranian actors abusing RMM platforms"
+    ]
+  },
+  {
+    "scenario_id": "IRN-07",
+    "title": "Influence operation amplified by fabricated or mixed-authenticity breach material",
+    "family": "influence_ops",
+    "status": "watch",
+    "scope": {
+      "sector": ["media", "public_companies", "political_organizations", "defense_adjacent"],
+      "geography": ["United States", "Israel", "Europe", "global"],
+      "assets": [
+        "Social media platforms — X, Telegram, Facebook",
+        "Journalist and activist contact networks",
+        "Company reputation and brand identity",
+        "Investor and market perception",
+        "Internal documents and communications as leak material"
+      ]
+    },
+    "threat_actor": {
+      "label": "Iran-aligned information operators and persona networks — linked to IRGC and Ministry of Intelligence",
+      "attribution": "medium_confidence",
+      "motives": [
+        "Narrative shaping to advance Iranian geopolitical interests",
+        "Investor panic and market disruption against target organizations",
+        "Social polarization within target countries",
+        "Intimidation of individuals or organizations critical of Iran",
+        "Undermining trust in Western institutions and technology companies"
+      ]
+    },
+    "targets": {
+      "primary": [
+        "Media organizations and journalists covering Iran",
+        "Publicly traded companies with high market visibility",
+        "Political organizations and campaigns in US and allied countries",
+        "Defense-adjacent brands with symbolic value"
+      ],
+      "secondary": [
+        "Investors and market participants consuming leaked narrative",
+        "Social media users susceptible to amplified disinformation",
+        "Journalists who may inadvertently amplify unverified leak claims"
+      ],
+      "high_value_conditions": [
+        "Organization with existing public controversy that amplifies leak narrative",
+        "Public company where leak claim could move stock price",
+        "Political organization during election cycle",
+        "High-profile individual whose reputation creates amplification value"
+      ]
+    },
+    "trigger_conditions": [
+      "Geopolitical event where Iran seeks narrative advantage",
+      "Opportunity created by real breach of target organization",
+      "Iranian government decision to run influence operation against specific target",
+      "US or allied election cycle creating influence operation opportunity"
+    ],
+    "attack_path": [
+      "Real or claimed breach of target organization used as foundation for narrative",
+      "Selective leak of authentic documents mixed with forged or manipulated material",
+      "Persona accounts on X and Telegram publish leak with inflammatory framing",
+      "Coordinated bot network amplifies initial posts to create trending appearance",
+      "Outreach to journalists, activists, and influencers with leak material",
+      "Secondary amplification by unwitting real accounts sharing sensational content",
+      "Narrative maintained and extended with follow-on leaks or fabrications"
+    ],
+    "indicators": {
+      "telemetry": [
+        "Spike in social media mentions of organization linked to leak claims",
+        "Coordinated posting pattern — multiple accounts posting identical content within seconds",
+        "Account age and follower patterns inconsistent with organic influence",
+        "Document metadata inconsistencies in leaked material — creation dates, author fields",
+        "Stock price or market reaction to unverified leak claim"
+      ],
+      "behavioral": [
+        "Journalists reporting receiving unsolicited leak material from unknown contacts",
+        "Organization employees receiving threatening or coercive messages citing leaked data",
+        "Investor or customer inquiries referencing specific leaked document claims",
+        "Social media monitoring showing coordinated negative narrative spike"
+      ],
+      "external": [
+        "Low-confidence leak claim from account with no established credibility",
+        "Document authenticity questions raised by researchers — metadata, formatting anomalies",
+        "Synchronized amplification across multiple Telegram channels simultaneously",
+        "Known Iran-linked persona network nodes participating in amplification",
+        "SENTRY Monitor: coordinated bot amplification pattern detected in signal feed"
+      ]
+    },
+    "impact": {
+      "likelihood": "medium-high",
+      "severity": "high",
+      "business_effects": [
+        "Narrative chaos requiring sustained PR and legal response",
+        "Reputational damage persisting beyond debunking of fabricated material",
+        "Market confusion and potential stock price impact for public companies",
+        "Customer and partner uncertainty requiring active reassurance campaign",
+        "Executive and board distraction during critical operational periods"
+      ]
+    },
+    "recommended_actions": {
+      "phantom": [
+        "Monitor X and Telegram for leak claims referencing organization",
+        "Alert on coordinated amplification patterns — synchronized posting from multiple accounts",
+        "Flag outreach to known journalists from unverified accounts referencing organization",
+        "Monitor for document authenticity challenges in social media discourse",
+        "Track account networks participating in amplification for attribution"
+      ],
+      "sentry": [
+        "Open influence operation case — collect all claim posts, timestamps, and account data",
+        "Conduct rapid document authenticity assessment — metadata, formatting, content verification",
+        "Coordinate with legal counsel on defamation and disinformation response options",
+        "Prepare factual rebuttal package for journalist and investor outreach",
+        "Engage platform trust and safety teams for coordinated inauthentic behavior takedown"
+      ],
+      "command": [
+        "Activate influence operation response view — narrative spread and amplification tracking",
+        "Coordinate legal, PR, and security response from unified command",
+        "Track media pickup and journalist engagement with false narrative",
+        "Manage investor and customer communications to counter false narrative"
+      ],
+      "core": [
+        "Emit influence_ops.fabricated_leak and influence_ops.coordinated_amplification events",
+        "Feed persona account identifiers into PHANTOM monitoring list",
+        "Trigger rapid attribution triage workflow",
+        "Update organizational threat posture for sustained influence operation exposure"
+      ]
+    },
+    "service_mappings": {
+      "phantom_watch_state": "iran_influence_ops_watch",
+      "sentry_case_type": "influence_ops_iran_fabricated_leak",
+      "command_view": "influence_ops_response",
+      "core_event_types": [
+        "influence_ops.fabricated_leak",
+        "influence_ops.coordinated_amplification",
+        "influence_ops.persona_network",
+        "influence_ops.journalist_outreach"
+      ]
+    },
+    "confidence": 0.71,
+    "last_updated": "2026-04-12",
+    "sources": [
+      "Meta Adversarial Threat Report on Iranian influence operations 2022-2025",
+      "Stanford Internet Observatory reporting on Iranian influence operation networks",
+      "Microsoft MSTIC reporting on Iranian information operations",
+      "FBI indictments of Iranian nationals for influence operations against US elections"
+    ]
+  }
+]
