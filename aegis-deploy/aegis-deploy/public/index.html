@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<meta name="theme-color" content="#0d0f14">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AEGIS — Intelligent Threat Intelligence Platform</title>
+<title>SENTRY — Intelligent Threat Intelligence Platform | Aegis</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1383,18 +1389,30 @@ async function getFirebaseIdToken() {
 async function callClaude(prompt, maxTokens) {
   maxTokens = maxTokens || 600;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: maxTokens,
-        messages: [{role: 'user', content: prompt}]
-      })
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.content && data.content[0] && data.content[0].text ? data.content[0].text : null;
+    let res;
+    if (AEGIS_PROD) {
+      res = await fetch(AEGIS_PROXY_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ prompt, stream: false })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.content && data.content[0] && data.content[0].text ? data.content[0].text : null;
+    } else {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          messages: [{role: 'user', content: prompt}]
+        })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.content && data.content[0] && data.content[0].text ? data.content[0].text : null;
+    }
   } catch(e) { return null; }
 }
 
@@ -1488,7 +1506,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 // ── ALERT CARD ANALYSIS ───────────────────────────────────────────────────
 function analyzeAlert(alertId, title, context, el) {
-  const row = el.nextElementSibling;
+  const card = el.closest('.alert-card');
+  const row = card ? card.nextElementSibling : null;
   if (row && row.classList.contains('alert-analysis-row')) {
     if (row.classList.contains('open')) { row.classList.remove('open'); el.textContent = 'Analyze ↗'; return; }
     row.classList.add('open');
