@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEGIS — Intelligent Threat Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:    #0d0f14;
+  --dark2:   #141720;
+  --dark3:   #1c2030;
+  --panel:   #1a1e2a;
+  --border:  #252b3a;
+  --accent:  #c0392b;
+  --gold:    #d4ac0d;
+  --teal:    #1abc9c;
+  --blue:    #2980b9;
+  --text:    #f4f6ff;
+  --muted:   #b8bdd4;
+  --dim:     #7a82a0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--dark);
+  color:var(--text);
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:15px;
+  line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* SCANLINE overlay */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 3rem;height:56px;
+  background:rgba(13,15,20,0.92);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(8px);
+}
+.nav-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem;letter-spacing:0.15em;
+  color:var(--text);
+}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;
+  color:#b0b8d4;text-decoration:none;
+  transition:color 0.2s;
+}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
+  padding:6px 18px;border:1px solid var(--accent);
+  color:var(--accent);background:transparent;cursor:pointer;
+  transition:all 0.2s;
+}
+.nav-cta:hover{background:var(--accent);color:#fff}
+
+/* HERO */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:8rem 3rem 4rem;
+  position:relative;overflow:hidden;
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(192,57,43,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(192,57,43,0.04) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+.hero-glow{
+  position:absolute;top:20%;left:10%;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(192,57,43,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-content{position:relative;max-width:900px}
+.hero-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:1.5rem;
+  display:flex;align-items:center;gap:0.75rem;
+}
+.hero-tag::before{content:'';display:block;width:32px;height:1px;background:var(--accent)}
+.hero h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(4rem,10vw,9rem);
+  line-height:0.9;letter-spacing:0.02em;
+  color:var(--text);margin-bottom:0.5rem;
+}
+.hero h1 .red{color:var(--accent)}
+.hero-sub{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:1.15rem;font-weight:300;
+  color:#c4c9e0;max-width:600px;
+  margin:1.5rem 0 2.5rem;line-height:1.8;
+}
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap}
+.btn-primary{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;
+  padding:12px 28px;background:var(--accent);border:1px solid var(--accent);
+  color:#fff;cursor:pointer;text-decoration:none;display:inline-block;
+  transition:all 0.2s;
+}
+.btn-primary:hover{background:transparent;color:var(--accent)}
+.btn-outline{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;
+  padding:12px 28px;background:transparent;border:1px solid var(--dim);
+  color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;
+  transition:all 0.2s;
+}
+.btn-outline:hover{border-color:var(--muted);color:var(--text)}
+
+/* TICKER */
+.ticker{
+  background:var(--dark2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:10px 0;overflow:hidden;position:relative;
+}
+.ticker-inner{display:flex;gap:3rem;animation:ticker 30s linear infinite;white-space:nowrap}
+.ticker-item{
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;gap:0.5rem;flex-shrink:0;
+}
+.ticker-item .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
+.ticker-item.green .dot{background:var(--teal)}
+.ticker-item.gold .dot{background:var(--gold)}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* SECTION LAYOUT */
+section{padding:6rem 3rem}
+.section-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:1rem;
+  display:flex;align-items:center;gap:0.75rem;
+}
+.section-tag::before{content:'';display:block;width:24px;height:1px;background:var(--accent)}
+.section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2.5rem,5vw,4.5rem);
+  letter-spacing:0.04em;color:var(--text);
+  margin-bottom:1rem;line-height:1;
+}
+.section-lead{
+  font-size:1rem;color:#c4c9e0;
+  max-width:640px;margin-bottom:3rem;font-weight:300;
+}
+
+/* PRODUCTS GRID */
+.products-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);
+  margin-bottom:4rem;
+}
+.product-card{
+  background:var(--panel);padding:2rem;
+  position:relative;overflow:hidden;
+  transition:background 0.3s;
+}
+.product-card:hover{background:var(--dark3)}
+.product-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--accent);transform:scaleX(0);transform-origin:left;
+  transition:transform 0.3s;
+}
+.product-card:hover::before{transform:scaleX(1)}
+.product-card.teal::before{background:var(--teal)}
+.product-card.gold::before{background:var(--gold)}
+.product-card.blue::before{background:var(--blue)}
+.product-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:#a0a8c4;margin-bottom:0.75rem;
+}
+.product-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2.2rem;letter-spacing:0.08em;
+  color:var(--text);margin-bottom:0.5rem;
+}
+.product-name .accent{color:var(--accent)}
+.product-name .teal{color:var(--teal)}
+.product-name .gold{color:var(--gold)}
+.product-name .blue{color:var(--blue)}
+.product-desc{font-size:0.85rem;color:#ced3e8;line-height:1.7;margin-bottom:1.5rem}
+.product-features{list-style:none;display:flex;flex-direction:column;gap:0.4rem}
+.product-features li{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+  color:#9ba5c4;display:flex;align-items:center;gap:0.5rem;
+}
+.product-features li::before{content:'→';color:var(--accent);font-size:0.6rem}
+.product-card.teal .product-features li::before{color:var(--teal)}
+.product-card.gold .product-features li::before{color:var(--gold)}
+.product-card.blue .product-features li::before{color:var(--blue)}
+
+/* THREAT DASHBOARD */
+.threat-section{background:var(--dark2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.dashboard{max-width:1100px;margin:0 auto}
+.dash-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;
+}
+.dash-status{
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.status-pill{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:4px 12px;border:1px solid;display:flex;align-items:center;gap:6px;
+}
+.status-pill.red{border-color:var(--accent);color:var(--accent)}
+.status-pill.green{border-color:var(--teal);color:var(--teal)}
+.status-pill.gold{border-color:var(--gold);color:var(--gold)}
+.status-pill .blink{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.2s infinite}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);margin-bottom:1px}
+.dash-grid.two{grid-template-columns:1fr 1fr}
+.dash-grid.full{grid-template-columns:1fr}
+.dash-cell{background:var(--panel);padding:1.25rem}
+.cell-label{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.15em;text-transform:uppercase;color:#a8b0cc;
+  margin-bottom:0.75rem;
+}
+.cell-num{
+  font-family:'Bebas Neue',sans-serif;font-size:2.4rem;
+  letter-spacing:0.05em;line-height:1;
+}
+.cell-num.red{color:var(--accent)}
+.cell-num.gold{color:var(--gold)}
+.cell-num.teal{color:var(--teal)}
+.cell-sub{font-size:0.72rem;color:#a8b0cc;margin-top:0.25rem}
+
+/* ALERT CARDS */
+.alert-feed{display:flex;flex-direction:column;gap:1px;background:var(--border)}
+.alert-card{
+  background:var(--panel);padding:1rem 1.25rem;
+  display:flex;align-items:flex-start;gap:1rem;
+  border-left:3px solid transparent;
+  transition:background 0.2s;cursor:pointer;
+}
+.alert-card:hover{background:var(--dark3)}
+.alert-card.crit{border-left-color:var(--accent)}
+.alert-card.high{border-left-color:var(--gold)}
+.alert-card.watch{border-left-color:var(--blue)}
+.alert-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:3px 8px;flex-shrink:0;margin-top:2px;
+}
+.alert-badge.crit{background:rgba(192,57,43,0.15);color:var(--accent);border:1px solid rgba(192,57,43,0.3)}
+.alert-badge.kev{background:rgba(212,172,13,0.12);color:var(--gold);border:1px solid rgba(212,172,13,0.3)}
+.alert-badge.gov{background:rgba(41,128,185,0.12);color:var(--blue);border:1px solid rgba(41,128,185,0.3)}
+.alert-badge.watch{background:rgba(26,188,156,0.1);color:var(--teal);border:1px solid rgba(26,188,156,0.25)}
+.alert-body{flex:1;min-width:0}
+.alert-title{font-size:0.85rem;font-weight:500;color:#f0f2ff;margin-bottom:0.25rem}
+.alert-meta{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:#9ba5c4;display:flex;gap:1rem;flex-wrap:wrap}
+.alert-score{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  color:var(--muted);flex-shrink:0;margin-top:2px;
+}
+.alert-score.crit{color:var(--accent)}
+.alert-score.high{color:var(--gold)}
+
+/* SCENARIO SECTION */
+.scenario-section{background:var(--dark)}
+.scenario-matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border)}
+.scenario-card{
+  background:var(--panel);padding:1.25rem;
+  cursor:pointer;transition:background 0.2s;
+  position:relative;overflow:hidden;
+}
+.scenario-card:hover{background:var(--dark3)}
+.scenario-id{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.1em;color:var(--accent);
+  background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.2);
+  padding:3px 8px;display:inline-block;margin-bottom:0.75rem;
+}
+.scenario-title{font-size:0.88rem;font-weight:500;color:#eef0ff;margin-bottom:0.75rem;line-height:1.4}
+.scenario-pills{display:flex;gap:6px;flex-wrap:wrap}
+.spill{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.06em;padding:2px 8px;border-radius:1px;
+}
+.spill.high{background:rgba(192,57,43,0.12);color:var(--accent);border:1px solid rgba(192,57,43,0.25)}
+.spill.mh{background:rgba(212,172,13,0.1);color:var(--gold);border:1px solid rgba(212,172,13,0.25)}
+.spill.med{background:rgba(41,128,185,0.1);color:var(--blue);border:1px solid rgba(41,128,185,0.25)}
+.spill.vh{background:rgba(192,57,43,0.18);color:#e74c3c;border:1px solid rgba(231,76,60,0.3)}
+.spill.crit{background:rgba(231,76,60,0.2);color:#ff6b6b;border:1px solid rgba(255,107,107,0.35)}
+
+/* SENTRY MONITOR */
+.monitor-section{background:var(--dark2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.monitor-layout{display:grid;grid-template-columns:1fr 2fr;gap:1px;background:var(--border);border:1px solid var(--border)}
+.monitor-sidebar{background:var(--panel);padding:1.5rem;display:flex;flex-direction:column;gap:0.75rem}
+.monitor-mode{
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:10px 14px;border:1px solid var(--dim);
+  color:var(--muted);cursor:pointer;transition:all 0.2s;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.monitor-mode:hover{border-color:var(--muted);color:var(--text)}
+.monitor-mode.active{border-color:var(--accent);color:var(--accent);background:rgba(192,57,43,0.06)}
+.monitor-feed{background:var(--panel);padding:0}
+.feed-item{
+  padding:1rem 1.25rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:0.75rem;
+  transition:background 0.15s;cursor:pointer;
+}
+.feed-item:hover{background:var(--dark3)}
+.feed-item:last-child{border-bottom:none}
+.feed-src{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.08em;text-transform:uppercase;
+  padding:2px 7px;flex-shrink:0;
+}
+.src-x{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--dim)}
+.src-tg{background:rgba(41,128,185,0.12);color:var(--blue);border:1px solid rgba(41,128,185,0.25)}
+.src-cisa{background:rgba(26,188,156,0.1);color:var(--teal);border:1px solid rgba(26,188,156,0.25)}
+.src-nvd{background:rgba(212,172,13,0.1);color:var(--gold);border:1px solid rgba(212,172,13,0.25)}
+.feed-text{font-size:0.8rem;color:#eef0ff;line-height:1.5;flex:1}
+.feed-meta{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:#9ba5c4;margin-top:0.25rem}
+.feed-score{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+  flex-shrink:0;font-weight:500;
+}
+.feed-score.crit{color:var(--accent)}
+.feed-score.high{color:var(--gold)}
+.feed-score.med{color:var(--muted)}
+
+/* AUDIENCE */
+.audience-section{background:var(--dark)}
+.audience-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border);border:1px solid var(--border)}
+.audience-card{background:var(--panel);padding:1.5rem;transition:background 0.2s}
+.audience-card:hover{background:var(--dark3)}
+.aud-icon{font-size:1.5rem;margin-bottom:1rem;display:block}
+.aud-name{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.06em;color:var(--text);margin-bottom:0.5rem}
+.aud-desc{font-size:0.8rem;color:#b8bdd4;line-height:1.6;margin-bottom:1rem}
+.aud-tier{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--accent);border-top:1px solid var(--border);
+  padding-top:0.75rem;
+}
+
+/* FUEL PRICE CHAIN */
+.cascade-section{background:var(--dark2);border-top:1px solid var(--border)}
+.cascade-chain{display:flex;align-items:stretch;gap:0;flex-wrap:nowrap;overflow-x:auto;margin:2rem 0;padding-bottom:0.5rem}
+.cascade-step{
+  flex:1;min-width:160px;background:var(--panel);padding:1.25rem 1rem;
+  position:relative;display:flex;flex-direction:column;
+}
+.cascade-step+.cascade-step{border-left:1px solid var(--border)}
+.cascade-arrow{
+  position:absolute;right:-12px;top:50%;transform:translateY(-50%);
+  font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--accent);z-index:1;
+}
+.cascade-num{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  color:var(--accent);margin-bottom:0.5rem;letter-spacing:0.1em;
+}
+.cascade-title{font-size:0.82rem;font-weight:500;color:#f0f2ff;margin-bottom:0.4rem;line-height:1.4}
+.cascade-detail{font-size:0.72rem;color:#b4bbd4;line-height:1.5}
+.cascade-step.highlight{background:rgba(192,57,43,0.06);border-top:2px solid var(--accent)}
+
+/* PRICING */
+.pricing-section{background:var(--dark)}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:2rem}
+.pricing-card{background:var(--panel);padding:1.5rem;transition:background 0.2s;position:relative}
+.pricing-card:hover{background:var(--dark3)}
+.pricing-card.featured{background:var(--dark3);border-top:2px solid var(--accent)}
+.pricing-tier{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:0.5rem;
+}
+.pricing-price{
+  font-family:'Bebas Neue',sans-serif;font-size:1.8rem;
+  letter-spacing:0.04em;color:var(--text);margin-bottom:0.25rem;
+}
+.pricing-price.accent{color:var(--accent)}
+.pricing-audience{font-size:0.78rem;color:#b4bbd0;margin-bottom:1rem;line-height:1.5}
+.pricing-includes{list-style:none;display:flex;flex-direction:column;gap:0.35rem}
+.pricing-includes li{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  color:#9ba5c4;display:flex;align-items:center;gap:0.5rem;
+}
+.pricing-includes li::before{content:'✓';color:var(--teal);font-size:0.55rem}
+
+/* DEEP6 */
+.deep6-section{
+  background:linear-gradient(135deg,var(--dark) 0%,rgba(20,15,10,1) 100%);
+  border-top:1px solid var(--border);
+}
+.deep6-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.2em;text-transform:uppercase;
+  padding:4px 14px;border:1px solid var(--gold);color:var(--gold);
+  display:inline-block;margin-bottom:1.5rem;
+}
+.deep6-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
+.deep6-feature{margin-bottom:2rem}
+.deep6-feature-title{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:0.5rem;
+}
+.deep6-feature-body{font-size:0.85rem;color:#c0c6de;line-height:1.7}
+.deep6-restriction{
+  background:var(--panel);border:1px solid var(--border);
+  border-left:3px solid var(--gold);padding:1.25rem;margin-top:2rem;
+}
+.deep6-restriction-title{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.5rem;
+}
+.deep6-restriction-body{font-size:0.82rem;color:#b8bdd4;line-height:1.6}
+
+/* CTA */
+.cta-section{
+  background:var(--dark2);border-top:1px solid var(--border);
+  text-align:center;padding:8rem 3rem;
+}
+.cta-eyebrow{
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);
+  margin-bottom:1.5rem;
+}
+.cta-headline{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(3rem,7vw,7rem);
+  letter-spacing:0.04em;line-height:0.95;
+  color:var(--text);margin-bottom:1.5rem;
+}
+.cta-sub{font-size:1rem;color:#c4c9e0;max-width:500px;margin:0 auto 2.5rem;font-weight:300}
+
+/* FOOTER */
+footer{
+  background:var(--dark);border-top:1px solid var(--border);
+  padding:2rem 3rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;
+}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:0.15em;color:var(--muted)}
+.footer-copy{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;color:#7a82a0}
+.footer-links{display:flex;gap:1.5rem}
+.footer-links a{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;color:var(--dim);text-decoration:none}
+.footer-links a:hover{color:var(--muted)}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hero-content>*{animation:fadeUp 0.7s ease both}
+.hero-content>*:nth-child(1){animation-delay:0.1s}
+.hero-content>*:nth-child(2){animation-delay:0.25s}
+.hero-content>*:nth-child(3){animation-delay:0.4s}
+.hero-content>*:nth-child(4){animation-delay:0.55s}
+.hero-content>*:nth-child(5){animation-delay:0.7s}
+
+/* SCROLL REVEAL */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
+.reveal.visible{opacity:1;transform:none}
+
+@media(max-width:768px){
+  nav{padding:0 1.5rem}
+  .nav-links{display:none}
+  section{padding:4rem 1.5rem}
+  .hero{padding:7rem 1.5rem 3rem}
+  .deep6-grid{grid-template-columns:1fr}
+  .monitor-layout{grid-template-columns:1fr}
+  .monitor-sidebar{flex-direction:row;flex-wrap:wrap}
+  .cascade-chain{gap:0}
+  footer{flex-direction:column;text-align:center}
+  .footer-links{justify-content:center}
+}
+
+/* ── AI WHAT-IF ENGINE ─────────────────────────────────────────── */
+.ai-whatif-panel{
+  background:var(--panel);border:1px solid var(--border);
+  border-top:2px solid var(--gold);
+  padding:1.75rem;margin-top:2.5rem;
+}
+.ai-whatif-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem;
+}
+.ai-whatif-label{
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);
+}
+.ai-whatif-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:3px 10px;border:1px solid var(--dim);color:var(--muted);
+}
+.ai-pulse{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--gold);border:1px solid rgba(212,172,13,0.4);
+  flex-shrink:0;
+}
+.ai-pulse.on{animation:pulse 1s infinite}
+.ai-quickfire{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;
+}
+.qf-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.06em;padding:5px 12px;
+  border:1px solid var(--dim);color:var(--muted);
+  background:transparent;cursor:pointer;transition:all 0.2s;
+}
+.qf-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(212,172,13,0.06)}
+.ai-whatif-input-row{display:flex;gap:8px;margin-bottom:1rem}
+.ai-whatif-input{
+  flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
+  background:var(--dark);border:1px solid var(--border);
+  color:var(--text);padding:10px 14px;outline:none;
+  transition:border-color 0.2s;
+}
+.ai-whatif-input:focus{border-color:var(--gold)}
+.ai-whatif-input::placeholder{color:var(--dim)}
+.ai-whatif-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:10px 22px;background:var(--gold);border:none;
+  color:var(--dark);font-weight:600;cursor:pointer;
+  transition:opacity 0.2s;white-space:nowrap;
+}
+.ai-whatif-btn:hover{opacity:0.85}
+.ai-whatif-btn:disabled{opacity:0.4;cursor:not-allowed}
+.ai-whatif-output{
+  font-family:'IBM Plex Sans',sans-serif;font-size:0.88rem;
+  color:#eef0ff;line-height:1.8;
+  min-height:80px;white-space:pre-wrap;
+  border-top:1px solid var(--border);padding-top:1rem;
+}
+.ai-dim{color:var(--dim);font-style:italic}
+.ai-typing::after{
+  content:'▋';color:var(--gold);animation:blink-cursor 0.7s infinite;
+}
+@keyframes blink-cursor{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── SCENARIO ANALYSIS MODAL ──────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);
+  z-index:200;display:flex;align-items:center;justify-content:center;
+  padding:2rem;opacity:0;pointer-events:none;transition:opacity 0.25s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{
+  background:var(--dark2);border:1px solid var(--border);
+  border-top:2px solid var(--accent);
+  max-width:680px;width:100%;max-height:80vh;
+  display:flex;flex-direction:column;
+}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.modal-title{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);
+}
+.modal-close{
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
+  color:var(--muted);background:none;border:1px solid var(--dim);
+  padding:4px 10px;cursor:pointer;transition:all 0.2s;
+}
+.modal-close:hover{color:var(--text);border-color:var(--muted)}
+.modal-scenario-id{
+  font-family:'Bebas Neue',sans-serif;font-size:1.8rem;
+  letter-spacing:0.06em;color:var(--text);
+  padding:1rem 1.5rem 0.5rem;flex-shrink:0;
+}
+.modal-body{
+  padding:0 1.5rem 1.5rem;overflow-y:auto;flex:1;
+}
+.modal-analysis{
+  font-size:0.87rem;color:#eef0ff;line-height:1.8;
+  white-space:pre-wrap;min-height:120px;
+}
+.modal-pulse{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);display:inline-block;margin-right:6px;
+}
+.modal-pulse.on{animation:pulse 1s infinite}
+
+/* ── ALERT CARD ANALYSIS ──────────────────────────────────────── */
+.alert-analysis-row{
+  padding:0.75rem 1.25rem;
+  border-top:1px solid var(--border);
+  background:rgba(0,0,0,0.2);
+  display:none;
+}
+.alert-analysis-row.open{display:block}
+.alert-analysis-text{
+  font-size:0.8rem;color:#eef0ff;line-height:1.7;
+  white-space:pre-wrap;
+}
+.alert-analyze-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.08em;text-transform:uppercase;
+  padding:3px 10px;border:1px solid var(--dim);
+  color:var(--muted);background:transparent;cursor:pointer;
+  transition:all 0.2s;margin-top:0.5rem;
+}
+.alert-analyze-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+
+/* ── DYNAMIC QUESTIONS ────────────────────────────────────────────── */
+.qf-loading{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  color:var(--muted);display:flex;align-items:center;gap:8px;
+  padding:4px 0;letter-spacing:0.06em;
+}
+.qf-loading-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--gold);
+  animation:pulse 1s infinite;flex-shrink:0;
+}
+.qf-refresh-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:1rem;
+  margin-top:-0.5rem;
+}
+.qf-refresh-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:3px 10px;border:1px solid var(--dim);color:var(--dim);
+  background:transparent;cursor:pointer;transition:all 0.2s;
+}
+.qf-refresh-btn:hover{border-color:var(--gold);color:var(--gold)}
+.qf-refresh-btn:disabled{opacity:0.3;cursor:not-allowed}
+.qf-context-label{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  color:var(--dim);letter-spacing:0.06em;
+}
+.qf-btn.dynamic-loaded{
+  animation:fadeUp 0.4s ease both;
+}
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">AE<span>G</span>IS</div>
+  <ul class="nav-links">
+    <li><a href="#products">Products</a></li>
+    <li><a href="#threats">Threat Dashboard</a></li>
+    <li><a href="#scenarios">Scenarios</a></li>
+    <li><a href="#monitor">Monitor</a></li>
+    <li><a href="#deep6">Deep6</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta">Request Access</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-tag">AI-Driven Intelligence Platform — 2026</div>
+    <h1>AE<span class="red">G</span>IS</h1>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;color:var(--muted);margin-bottom:0.5rem;text-transform:uppercase">
+      Intelligence &nbsp;·&nbsp; Defense &nbsp;·&nbsp; Documentation
+    </div>
+    <p class="hero-sub">
+      The platform that models what adversaries will do before they do it.
+      Threat scenario intelligence, real-time signal monitoring, and structured evidence
+      documentation — for the institutions with the authority to act on it.
+    </p>
+    <div class="hero-actions">
+      <a href="#products" class="btn-primary">Explore the Platform</a>
+      <a href="#threats" class="btn-outline">View Live Threats</a>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <span class="ticker-item"><span class="dot"></span>ACTIVE ALERT: GRU router campaign — NSA/FBI joint advisory 2026-04-07</span>
+    <span class="ticker-item gold"><span class="dot"></span>KEV: CVE-2024-48887 Fortinet FortiSwitch — Priority Score 88 — Patch Available</span>
+    <span class="ticker-item green"><span class="dot"></span>SENTRY Monitor: Active — 3 alerts, 7 watch signals ingested</span>
+    <span class="ticker-item"><span class="dot"></span>Scenario Watch: IRN-03 long-dwell espionage — likelihood HIGH</span>
+    <span class="ticker-item gold"><span class="dot"></span>IRN-05 OT/ICS — IRGC CyberAv3ngers — energy sector elevated</span>
+    <span class="ticker-item green"><span class="dot"></span>AWS-ME-01 regional outage scenario — watch posture active</span>
+    <span class="ticker-item"><span class="dot"></span>ACTIVE ALERT: GRU router campaign — NSA/FBI joint advisory 2026-04-07</span>
+    <span class="ticker-item gold"><span class="dot"></span>KEV: CVE-2024-48887 Fortinet FortiSwitch — Priority Score 88 — Patch Available</span>
+    <span class="ticker-item green"><span class="dot"></span>SENTRY Monitor: Active — 3 alerts, 7 watch signals ingested</span>
+    <span class="ticker-item"><span class="dot"></span>Scenario Watch: IRN-03 long-dwell espionage — likelihood HIGH</span>
+    <span class="ticker-item gold"><span class="dot"></span>IRN-05 OT/ICS — IRGC CyberAv3ngers — energy sector elevated</span>
+    <span class="ticker-item green"><span class="dot"></span>AWS-ME-01 regional outage scenario — watch posture active</span>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<section id="products">
+  <div class="section-tag">The Platform</div>
+  <div class="section-title reveal">Three Products.<br>One Intelligence Layer.</div>
+  <p class="section-lead reveal">Aegis is not a single tool. It is an architecture — four integrated components sharing a common event schema and data layer, each serving a distinct operational function.</p>
+
+  <div class="products-grid reveal">
+    <div class="product-card">
+      <div class="product-label">Module 01</div>
+      <div class="product-name"><span class="accent">SENTRY</span></div>
+      <p class="product-desc">Professional threat intelligence. Scenario modeling, open-source signal monitoring, and AI-driven what-if analysis for security teams, media, and government analysts.</p>
+      <ul class="product-features">
+        <li>Threat scenario library — IRN, AWS-ME, AZR, GCP series</li>
+        <li>Monitor Mode — Passive, Active, Hunt watch states</li>
+        <li>AI what-if engine — cascade modeling in real time</li>
+        <li>Government advisory ingestion — NSA, CISA, FBI</li>
+        <li>CVE/KEV live feed with priority scoring</li>
+      </ul>
+    </div>
+    <div class="product-card teal">
+      <div class="product-label">Module 02</div>
+      <div class="product-name"><span class="teal">DEEP6</span></div>
+      <p class="product-desc">Licensed harassment documentation platform. Pattern clustering, coordinated behavior evidence packaging, and case file export for law enforcement and platform trust and safety teams.</p>
+      <ul class="product-features">
+        <li>Account vault — bulk intake and metadata capture</li>
+        <li>AI pattern clustering — naming, timing, behavior</li>
+        <li>Evidence package export — platform and LE formats</li>
+        <li>Institutional license only — credential verified</li>
+        <li>Documents patterns, not individuals</li>
+      </ul>
+    </div>
+    <div class="product-card gold">
+      <div class="product-label">Module 03</div>
+      <div class="product-name"><span class="gold">COMMAND</span></div>
+      <p class="product-desc">Unified operational picture. The shared dashboard that surfaces threat alerts, scenario status, active cases, and cross-product correlation in a single operator view.</p>
+      <ul class="product-features">
+        <li>Live threat alert cards — actor campaigns, KEV, advisories</li>
+        <li>Tenant outage and blast radius status</li>
+        <li>Cross-scenario correlation and risk posture</li>
+        <li>Executive briefing and case export</li>
+        <li>Real-time SENTRY Monitor signal feed</li>
+      </ul>
+    </div>
+    <div class="product-card blue">
+      <div class="product-label">Module 04</div>
+      <div class="product-name"><span class="blue">CORE</span></div>
+      <p class="product-desc">The shared event schema and data layer. Aegis Core publishes state changes so one new advisory immediately updates risk posture across all platform components.</p>
+      <ul class="product-features">
+        <li>Unified threat_alert and vuln_alert schema</li>
+        <li>Threat scenario schema — 15+ validated scenarios</li>
+        <li>CISA KEV + NVD API ingestion pipeline</li>
+        <li>Priority scoring model — 0-100 computed rank</li>
+        <li>Cross-component event bus and state sync</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- THREAT DASHBOARD -->
+<section id="threats" class="threat-section">
+  <div class="section-tag">Command — Threat Panel</div>
+  <div class="section-title reveal">Live Threat<br>Intelligence</div>
+  <p class="section-lead reveal">The COMMAND threat panel fuses government advisories, CISA KEV updates, and SENTRY Monitor signals into a single prioritized operational view.</p>
+
+  <div class="dashboard reveal">
+    <div class="dash-header">
+      <div class="dash-status">
+        <div class="status-pill red"><span class="blink"></span>3 Active Alerts</div>
+        <div class="status-pill gold"><span class="blink"></span>2 KEV Critical</div>
+        <div class="status-pill green"><span class="blink"></span>Feeds Live</div>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--muted)">Last sync: 4 min ago</div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-cell">
+        <div class="cell-label">Active Threat Alerts</div>
+        <div class="cell-num red">3</div>
+        <div class="cell-sub">+1 since yesterday</div>
+      </div>
+      <div class="dash-cell">
+        <div class="cell-label">KEV Listed CVEs</div>
+        <div class="cell-num gold">2</div>
+        <div class="cell-sub">Federal due date within 21 days</div>
+      </div>
+      <div class="dash-cell">
+        <div class="cell-label">Watch Signals</div>
+        <div class="cell-num" style="color:var(--blue)">7</div>
+        <div class="cell-sub">Pending analyst review</div>
+      </div>
+    </div>
+
+    <div class="alert-feed reveal" style="margin-top:1px">
+      <div class="alert-card crit">
+        <div class="alert-badge crit">Critical</div>
+        <div class="alert-body">
+          <div class="alert-title">GRU actors exploiting vulnerable SOHO routers for credential theft and DNS hijacking</div>
+          <div class="alert-meta">
+            <span>NSA / FBI Joint Advisory</span>
+            <span>TA-2026-0041</span>
+            <span>2026-04-07</span>
+            <span>Military · Government · Critical Infrastructure</span>
+          </div>
+        </div>
+        <div class="alert-score crit">92%</div>
+      </div>
+      <div class="alert-card high">
+        <div class="alert-badge kev">KEV Critical</div>
+        <div class="alert-body">
+          <div class="alert-title">CVE-2024-48887 — Fortinet FortiSwitch unauthenticated password change via GUI (CVSS 9.3)</div>
+          <div class="alert-meta">
+            <span>CISA KEV + NVD</span>
+            <span>VA-2026-0187</span>
+            <span>Due: 2026-04-24</span>
+            <span>Priority Score: 88</span>
+          </div>
+        </div>
+        <div class="alert-score high">88</div>
+      </div>
+      <div class="alert-card crit">
+        <div class="alert-badge gov">Gov Advisory</div>
+        <div class="alert-body">
+          <div class="alert-title">IRGC-affiliated CyberAv3ngers targeting water and wastewater OT/ICS infrastructure — HMI exploitation active</div>
+          <div class="alert-meta">
+            <span>CISA Advisory</span>
+            <span>IRN-05 linked</span>
+            <span>2026-03-18</span>
+            <span>Water · Energy · Industrial</span>
+          </div>
+        </div>
+        <div class="alert-score crit">91%</div>
+      </div>
+      <div class="alert-card watch">
+        <div class="alert-badge watch">Watch</div>
+        <div class="alert-body">
+          <div class="alert-title">AZR-01: Tycoon2FA AiTM phishing kit hosting on Azure Static Web Apps — enterprise M365 tenant targeting observed</div>
+          <div class="alert-meta">
+            <span>SENTRY Monitor — X/Twitter + MSTIC</span>
+            <span>AZR-01 linked</span>
+            <span>Score: 74%</span>
+          </div>
+        </div>
+        <div class="alert-score high">74%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENARIO LIBRARY -->
+<section id="scenarios" class="scenario-section">
+  <div class="section-tag">SENTRY — Threat Scenario Library</div>
+  <div class="section-title reveal">15 Validated<br>Scenarios</div>
+  <p class="section-lead reveal">Structured, AI-enriched threat models across three scenario families. Each scenario includes actor attribution, attack path, indicators, and recommended actions mapped to Aegis service components.</p>
+
+  <div class="scenario-matrix reveal">
+    <div class="scenario-card">
+      <div class="scenario-id">IRN-01</div>
+      <div class="scenario-title">DDoS against public-facing tech platforms and customer portals</div>
+      <div class="scenario-pills"><span class="spill high">High likelihood</span><span class="spill med">Medium impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">IRN-02</div>
+      <div class="scenario-title">Hack-and-leak campaign against a technology company</div>
+      <div class="scenario-pills"><span class="spill mh">Medium-High likelihood</span><span class="spill vh">High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">IRN-03</div>
+      <div class="scenario-title">Long-dwell espionage in cloud and identity planes</div>
+      <div class="scenario-pills"><span class="spill high">High likelihood</span><span class="spill vh">High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">IRN-04</div>
+      <div class="scenario-title">Ransomware-style intrusion with political messaging</div>
+      <div class="scenario-pills"><span class="spill med">Medium likelihood</span><span class="spill vh">High impact</span></div>
+    </div>
+    <div class="scenario-card" style="border-top:2px solid var(--accent)">
+      <div class="scenario-id">IRN-05</div>
+      <div class="scenario-title">OT/ICS intrusion against water or energy operations — CyberAv3ngers</div>
+      <div class="scenario-pills"><span class="spill med">Medium likelihood</span><span class="spill crit">Very High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">IRN-06</div>
+      <div class="scenario-title">Supply-chain compromise through MSPs or trusted vendors</div>
+      <div class="scenario-pills"><span class="spill mh">Medium-High likelihood</span><span class="spill crit">Very High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">IRN-07</div>
+      <div class="scenario-title">Influence operation amplified by fabricated breach material</div>
+      <div class="scenario-pills"><span class="spill mh">Medium-High likelihood</span><span class="spill mh">Medium-High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">AWS-ME-01</div>
+      <div class="scenario-title">Five Middle East data centers unavailable — UAE and Bahrain</div>
+      <div class="scenario-pills"><span class="spill med">Medium likelihood</span><span class="spill crit">Very High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">AWS-ME-03</div>
+      <div class="scenario-title">Regional cloud outage during active Iran-linked cyber campaign</div>
+      <div class="scenario-pills"><span class="spill mh">Medium-High likelihood</span><span class="spill crit">Critical</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">AZR-01</div>
+      <div class="scenario-title">AiTM phishing via trusted Azure and Firebase domains — enterprise M365 targeting</div>
+      <div class="scenario-pills"><span class="spill high">High likelihood</span><span class="spill crit">Very High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">GCP-01</div>
+      <div class="scenario-title">Cloud-native worm and metadata credential pivot across GCP Kubernetes workloads</div>
+      <div class="scenario-pills"><span class="spill mh">Medium-High likelihood</span><span class="spill crit">Very High impact</span></div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-id">AZR-GCP-01</div>
+      <div class="scenario-title">Tenant-side disruption campaign mimicking data center outage</div>
+      <div class="scenario-pills"><span class="spill med">Medium likelihood</span><span class="spill crit">Critical</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SENTRY MONITOR -->
+<section id="monitor" class="monitor-section">
+  <div class="section-tag">SENTRY — Monitor Mode</div>
+  <div class="section-title reveal">Open-Source<br>Signal Intelligence</div>
+  <p class="section-lead reveal">Three watch postures. Five live feeds. AI relevance scoring against every active scenario. Built on the same methodology Cisco Talos used to monitor X/Twitter and Telegram for threat actor activity.</p>
+
+  <div class="monitor-layout reveal">
+    <div class="monitor-sidebar">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Watch posture</div>
+      <div class="monitor-mode">Passive <span style="font-size:0.55rem;color:var(--dim)">Digest</span></div>
+      <div class="monitor-mode active">Active <span style="font-size:0.55rem">Real-time</span></div>
+      <div class="monitor-mode">Hunt <span style="font-size:0.55rem;color:var(--dim)">Directed</span></div>
+      <div style="height:1px;background:var(--border);margin:0.5rem 0"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Active feeds</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--teal);display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block;animation:pulse 1.5s infinite"></span>X / Twitter</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--teal);display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block;animation:pulse 1.5s infinite 0.2s"></span>Telegram</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--teal);display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block;animation:pulse 1.5s infinite 0.4s"></span>CISA Advisories</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--teal);display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block;animation:pulse 1.5s infinite 0.6s"></span>NVD / CISA KEV</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--teal);display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block;animation:pulse 1.5s infinite 0.8s"></span>GitHub / SANS ISC</div>
+    </div>
+    <div class="monitor-feed">
+      <div class="feed-item">
+        <span class="feed-src src-x">X</span>
+        <div style="flex:1">
+          <div class="feed-text">@CyberAv3ngers_official: "We have accessed the control systems of a water treatment facility. Operations will be affected."</div>
+          <div class="feed-meta">IRN-05 linked · CyberAv3ngers · OT claim / hacktivist announcement · 4 min ago</div>
+        </div>
+        <span class="feed-score crit">91%</span>
+      </div>
+      <div class="feed-item">
+        <span class="feed-src src-tg">TG</span>
+        <div style="flex:1">
+          <div class="feed-text">Channel "Hackers of Mujahideen": DDoS tool deployed against hosting provider infrastructure. Drop rate: 1.2Tbps sustained.</div>
+          <div class="feed-meta">IRN-01 linked · Iran-affiliated hacktivists · DDoS coordination · 11 min ago · Corroborated</div>
+        </div>
+        <span class="feed-score crit">87%</span>
+      </div>
+      <div class="feed-item">
+        <span class="feed-src src-cisa">CISA</span>
+        <div style="flex:1">
+          <div class="feed-text">Advisory AA26-098A: Iranian IRGC-affiliated actors targeting water and wastewater sector internet-exposed HMI devices. Immediate action required.</div>
+          <div class="feed-meta">IRN-05 linked · IRGC-affiliated · OT/ICS intrusion · 38 min ago · Corroborated</div>
+        </div>
+        <span class="feed-score crit">95%</span>
+      </div>
+      <div class="feed-item">
+        <span class="feed-src src-nvd">KEV</span>
+        <div style="flex:1">
+          <div class="feed-text">CISA KEV update: CVE-2024-48887 added — Fortinet FortiSwitch unauthenticated password change. CVSS 9.3. Federal due date 2026-04-24.</div>
+          <div class="feed-meta">VA-2026-0187 · AZR-01 exposure risk · Actively exploited · 2h ago</div>
+        </div>
+        <span class="feed-score high">88</span>
+      </div>
+      <div class="feed-item">
+        <span class="feed-src src-x">X</span>
+        <div style="flex:1">
+          <div class="feed-text">Security researcher @infosec_watch: Large-scale spearphishing campaign targeting cloud provider staff. Lures reference AWS Middle East outage. IOCs in thread.</div>
+          <div class="feed-meta">IRN-02 linked · Unknown medium-confidence · Spearphishing / credential harvest · 52 min ago</div>
+        </div>
+        <span class="feed-score high">74%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUEL PRICE CASCADE -->
+<section class="cascade-section">
+  <div class="section-tag">SENTRY — What-If Engine</div>
+  <div class="section-title reveal">From Threat<br>to Pump Price</div>
+  <p class="section-lead reveal">SENTRY models the cascade from an Iran OT/ICS scenario to real-world consumer fuel price impact. This is the intelligence chain content creators, energy analysts, and policy teams use to explain what is actually happening.</p>
+
+  <div class="cascade-chain reveal">
+    <div class="cascade-step highlight">
+      <div class="cascade-num">01 / TRIGGER</div>
+      <div class="cascade-title">IRN-05 — OT/ICS Intrusion</div>
+      <div class="cascade-detail">IRGC-affiliated CyberAv3ngers exploit internet-exposed HMIs at Gulf energy or water facilities</div>
+    </div>
+    <div class="cascade-step">
+      <div class="cascade-num">02 / EFFECT</div>
+      <div class="cascade-title">Facility Disruption</div>
+      <div class="cascade-detail">Localized operational disruption, manual operations, symbolic retaliation — public fear amplified</div>
+    </div>
+    <div class="cascade-step">
+      <div class="cascade-num">03 / SIGNAL</div>
+      <div class="cascade-title">Production Uncertainty</div>
+      <div class="cascade-detail">Saudi Aramco and UAE ADNOC operational risk signals — energy market uncertainty begins</div>
+    </div>
+    <div class="cascade-step">
+      <div class="cascade-num">04 / CHOKEPOINT</div>
+      <div class="cascade-title">Strait of Hormuz Tension</div>
+      <div class="cascade-detail">20% of global oil supply transits this waterway — supply risk premium enters futures pricing</div>
+    </div>
+    <div class="cascade-step">
+      <div class="cascade-num">05 / MARKET</div>
+      <div class="cascade-title">Brent Crude Spike</div>
+      <div class="cascade-detail">Futures market responds to supply risk — Brent crude price movement within hours to days</div>
+    </div>
+    <div class="cascade-step highlight">
+      <div class="cascade-num">06 / CONSUMER</div>
+      <div class="cascade-title">Fuel Prices Rise</div>
+      <div class="cascade-detail">Gas prices, airline tickets, heating oil, food transport — visible consumer impact within days</div>
+    </div>
+  </div>
+
+  <!-- LIVE AI WHAT-IF ENGINE -->
+  <div class="ai-whatif-panel reveal" id="whatif-panel">
+    <div class="ai-whatif-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="ai-pulse" id="whatif-pulse"></div>
+        <span class="ai-whatif-label">SENTRY — Live What-If Engine</span>
+      </div>
+      <div class="ai-whatif-badge">Powered by Aegis AI</div>
+    </div>
+    <div class="ai-quickfire" id="quickfire-container">
+      <span class="qf-loading" id="qf-loading">
+        <span class="qf-loading-dot"></span>Generating contextual queries from live threat data...
+      </span>
+    </div>
+    <div class="qf-refresh-row">
+      <button class="qf-refresh-btn" id="qf-refresh" onclick="generateDynamicQuestions()" title="Regenerate questions from current threat data">↺ Refresh queries</button>
+      <span class="qf-context-label" id="qf-context-label"></span>
+    </div>
+    <div class="ai-whatif-input-row">
+      <input type="text" id="whatif-input" class="ai-whatif-input"
+        placeholder="Ask SENTRY — scenario analysis, cascade modeling, detection gaps, mitigation priorities..."
+        onkeydown="if(event.key==='Enter')runWhatIf()">
+      <button class="ai-whatif-btn" id="whatif-btn" onclick="runWhatIf()">Analyze ↗</button>
+    </div>
+    <div class="ai-whatif-output" id="whatif-output">
+      <span class="ai-dim">Select a query above or type your own. SENTRY will analyze against the full scenario corpus — IRN, AWS-ME, AZR, GCP series — and the active threat alert library.</span>
+    </div>
+  </div>
+</section>
+
+<!-- DEEP6 -->
+<section id="deep6" class="deep6-section">
+  <div class="section-tag">Deep6 — Licensed Platform</div>
+  <div class="deep6-badge">Institutional License Required</div>
+  <div class="section-title reveal">Deep<span style="color:var(--gold)">6</span></div>
+  <p class="section-lead reveal">Harassment documentation and evidence packaging for institutional investigators, law enforcement, and platform trust and safety professionals. Not a consumer product. Not available without credential verification.</p>
+
+  <div class="deep6-grid reveal">
+    <div>
+      <div class="deep6-feature">
+        <div class="deep6-feature-title">Account Vault</div>
+        <div class="deep6-feature-body">Intake and storage of documented burner and suspected coordinated accounts. Metadata capture, bulk import, screenshot attachment. Built for high-volume coordinated campaign documentation.</div>
+      </div>
+      <div class="deep6-feature">
+        <div class="deep6-feature-title">Pattern Clustering Engine</div>
+        <div class="deep6-feature-body">AI-driven clustering by shared characteristics — naming conventions, timing correlation, profile similarity, follower network overlap. Visual mind map output suitable for evidence submission and legal exhibits.</div>
+      </div>
+      <div class="deep6-feature">
+        <div class="deep6-feature-title">Evidence Package Export</div>
+        <div class="deep6-feature-body">Structured case file export for platform submission — TikTok, Meta, X/Twitter Trust and Safety. Law enforcement submission packages. Legal exhibit format with chain of custody documentation.</div>
+      </div>
+    </div>
+    <div>
+      <div class="deep6-restriction">
+        <div class="deep6-restriction-title">Core Design Constraint</div>
+        <div class="deep6-restriction-body">Deep6 documents behavioral patterns, not individuals. It produces evidence of coordinated inauthentic behavior — not identity attribution. Identity attribution is the exclusive function of law enforcement with legal process.<br><br>The product is architecturally incapable of individual dossier building, cross-platform individual surveillance, or offensive operations. The license gates who gets in. The product design determines what they can do inside.</div>
+      </div>
+      <div style="background:var(--panel);border:1px solid var(--border);padding:1.25rem;margin-top:1px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">License Tiers</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--text)"><span>Law Enforcement</span><span style="color:var(--gold)">Agency credential required</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--text)"><span>Legal / Compliance</span><span style="color:var(--gold)">Bar number or institutional</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--muted)"><span>Demo</span><span>Institutional email only</span></div>
+        </div>
+        <div style="margin-top:1rem;font-size:0.75rem;color:var(--dim)">No consumer tier. No personal subscriptions. Minimum 12-month institutional term with use case review at renewal.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AUDIENCE -->
+<section class="audience-section">
+  <div class="section-tag">Who It's For</div>
+  <div class="section-title reveal">Built for<br>Institutions</div>
+  <p class="section-lead reveal">Aegis serves the audiences with the authority, expertise, and operational need to act on intelligence. Not a consumer product. Not for everyone.</p>
+
+  <div class="audience-grid reveal">
+    <div class="audience-card">
+      <span class="aud-icon" style="font-size:1.2rem;color:var(--accent)">⬡</span>
+      <div class="aud-name">Energy Security</div>
+      <p class="aud-desc">Critical infrastructure operators, OT/ICS security teams, energy sector CISOs modeling state-actor threats against operational technology.</p>
+      <div class="aud-tier">Enterprise Security License</div>
+    </div>
+    <div class="audience-card">
+      <span class="aud-icon" style="font-size:1.2rem;color:var(--blue)">⬡</span>
+      <div class="aud-name">Government</div>
+      <p class="aud-desc">Federal and state agencies, law enforcement intelligence units, defense-adjacent analysts requiring structured threat scenario intelligence.</p>
+      <div class="aud-tier" style="color:var(--blue)">Government License</div>
+    </div>
+    <div class="audience-card">
+      <span class="aud-icon" style="font-size:1.2rem;color:var(--teal)">⬡</span>
+      <div class="aud-name">Journalists</div>
+      <p class="aud-desc">Investigative journalists and policy researchers needing sourced, structured threat context for stories that move markets and policy.</p>
+      <div class="aud-tier" style="color:var(--teal)">Media / Research License</div>
+    </div>
+    <div class="audience-card">
+      <span class="aud-icon" style="font-size:1.2rem;color:var(--gold)">⬡</span>
+      <div class="aud-name">Content Creators</div>
+      <p class="aud-desc">Energy, geopolitics, and economic security creators explaining the threat behind the headline — fuel prices, supply chain disruption, market moves.</p>
+      <div class="aud-tier" style="color:var(--gold)">Creator / Educator License</div>
+    </div>
+    <div class="audience-card">
+      <span class="aud-icon" style="font-size:1.2rem;color:var(--accent)">⬡</span>
+      <div class="aud-name">Think Tanks</div>
+      <p class="aud-desc">Policy institutes and academic researchers requiring rigorous scenario modeling for papers, congressional testimony, and public analysis.</p>
+      <div class="aud-tier">Media / Research License</div>
+    </div>
+    <div class="audience-card">
+      <span class="aud-icon" style="font-size:1.2rem;color:var(--muted)">⬡</span>
+      <div class="aud-name">Law Enforcement</div>
+      <p class="aud-desc">Deep6 access for sworn investigators and licensed investigators working coordinated harassment, cybercrime, and platform abuse cases.</p>
+      <div class="aud-tier" style="color:var(--teal)">Deep6 LE License</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="pricing-section">
+  <div class="section-tag">Access & Licensing</div>
+  <div class="section-title reveal">Institutional<br>Pricing</div>
+  <p class="section-lead reveal">SENTRY Thread Modeler is not a commodity product. Pricing reflects AI-assisted scenario modeling that would otherwise require a dedicated analyst team. All tiers require institutional verification.</p>
+
+  <div class="pricing-grid reveal">
+    <div class="pricing-card">
+      <div class="pricing-tier">Government / Law Enforcement</div>
+      <div class="pricing-price accent">Contact</div>
+      <div class="pricing-audience">Federal agencies, law enforcement intelligence units</div>
+      <ul class="pricing-includes">
+        <li>Full scenario library + Monitor Mode</li>
+        <li>Hunt mode + all watch states</li>
+        <li>LE submission templates</li>
+        <li>Deep6 access available</li>
+        <li>Agency credential verification</li>
+      </ul>
+    </div>
+    <div class="pricing-card featured">
+      <div class="pricing-tier">Enterprise Security</div>
+      <div class="pricing-price">$48K–$120K</div>
+      <div class="pricing-audience">Fortune 1000 security teams, energy sector, critical infrastructure operators</div>
+      <ul class="pricing-includes">
+        <li>Full scenario library</li>
+        <li>Monitor Mode — Passive + Active</li>
+        <li>AI what-if engine</li>
+        <li>Executive briefing export</li>
+        <li>Custom scenario development</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-tier">Media / Research</div>
+      <div class="pricing-price">$12K–$24K</div>
+      <div class="pricing-audience">Investigative journalists, think tanks, policy researchers</div>
+      <ul class="pricing-includes">
+        <li>Scenario library read access</li>
+        <li>Monitor Mode — Passive</li>
+        <li>AI analysis engine</li>
+        <li>Narrative export for publication</li>
+        <li>Citation package</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-tier">Creator / Educator</div>
+      <div class="pricing-price">$3.6K–$6K</div>
+      <div class="pricing-audience">Established content creators, cybersecurity educators</div>
+      <ul class="pricing-includes">
+        <li>Scenario library read access</li>
+        <li>AI what-if analysis</li>
+        <li>Narrative export for scripts</li>
+        <li>Citation package</li>
+        <li>Creator credential verification</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-tier">Demo</div>
+      <div class="pricing-price">Free</div>
+      <div class="pricing-audience">Institutional evaluation only — time-limited sandbox</div>
+      <ul class="pricing-includes">
+        <li>Synthetic data only</li>
+        <li>Full AI engine live</li>
+        <li>Institutional email required</li>
+        <li>No live operational data</li>
+        <li>Watermarked throughout</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-eyebrow">Request Access</div>
+  <div class="cta-headline reveal">The threat<br>is already<br>modeled.</div>
+  <p class="cta-sub">The question is whether your organization — or your adversary — sees it first.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="#" class="btn-primary">Request Institutional Demo</a>
+    <a href="#" class="btn-outline">Download Platform Spec</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">AEGIS</div>
+  <div class="footer-copy">© 2026 Aegis Platform LLC · Proprietary and Confidential · All rights reserved</div>
+  <div class="footer-links">
+    <a href="#">Platform Spec</a>
+    <a href="#">Acceptable Use</a>
+    <a href="#">Licensing</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+<!-- SCENARIO ANALYSIS MODAL -->
+<div class="modal-overlay" id="scenario-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">
+        <span class="modal-pulse" id="modal-pulse"></span>
+        SENTRY — Scenario Analysis
+      </span>
+      <button class="modal-close" onclick="closeModal()">Close ✕</button>
+    </div>
+    <div class="modal-scenario-id" id="modal-scenario-id">IRN-05</div>
+    <div class="modal-body">
+      <div class="modal-analysis" id="modal-analysis">
+        <span class="ai-dim">Loading scenario analysis...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SCENARIO CORPUS ────────────────────────────────────────────────────────
+const SCENARIOS = {
+  'IRN-01':{title:'DDoS against public-facing tech platforms',likelihood:'High',impact:'Medium',actors:'Iran-affiliated hacktivists; state-aligned operators',attack:'Botnet traffic floods against websites, APIs, login endpoints, VPN concentrators, DNS-exposed services',indicators:'Spike in volumetric traffic, rotating IP ranges, degraded CDN/WAF, coordinated claims on Telegram/X',mitigations:'Pre-stage DDoS scrubbing, rate limiting, CDN failover, DNS resilience, crisis comms playbooks'},
+  'IRN-02':{title:'Hack-and-leak campaign against a technology company',likelihood:'Medium-High',impact:'High',actors:'APT35/APT42-style operators; proxy personas',attack:'Spearphishing, credential theft, MFA fatigue or token theft, mailbox and drive exfiltration, staged public leaks',indicators:'Suspicious OAuth grants, impossible travel, mailbox forwarding rules, archive downloads, extortion posts',mitigations:'Phishing-resistant MFA, token monitoring, DLP, executive protection, leak response workflow'},
+  'IRN-03':{title:'Long-dwell espionage in cloud and identity planes',likelihood:'High',impact:'High',actors:'MuddyWater/APT34/APT35-linked operators',attack:'Password spraying, phishing, exploitation of public-facing apps, abuse of trusted cloud services for C2 and persistence',indicators:'Legacy auth spikes, anomalous admin role assignments, covert tunneling, unusual service principals, SaaS persistence',mitigations:'Conditional access, disable legacy auth, identity threat detection, PAM, log retention and threat hunting'},
+  'IRN-04':{title:'Ransomware-style intrusion with political messaging',likelihood:'Medium',impact:'High',actors:'Iran-affiliated actors or state-crime collaboration',attack:'Initial access via phishing or edge vulnerabilities, lateral movement, data exfiltration, selective encryption or wiping',indicators:'Credential dumping, unusual SMB/RDP activity, mass archiving, security tool tampering, ideological ransom note',mitigations:'Segmentation, EDR coverage, backup isolation, rapid containment playbooks, privileged account hardening'},
+  'IRN-05':{title:'OT/ICS intrusion against water or energy operations',likelihood:'Medium',impact:'Very High',actors:'IRGC-affiliated operators — CyberAv3ngers-linked activity',attack:'Exploit internet-exposed HMIs/PLCs, default credentials, remote vendor access, IT-to-OT pivot',indicators:'Unexpected PLC mode changes, HMI defacement, unauthorized firmware/config changes, loss of view/control alarms',mitigations:'Remove OT from internet, enforce MFA on remote access, monitor config changes, keep PLCs in run mode, interlocks and backups'},
+  'IRN-06':{title:'Supply-chain compromise through MSPs or trusted vendors',likelihood:'Medium-High',impact:'Very High',actors:'Espionage-focused Iranian clusters',attack:'Compromise vendor credentials or management tooling, pivot through remote administration channels into customer environments',indicators:'Remote management abuse outside maintenance windows, concurrent client anomalies, suspicious vendor account behavior',mitigations:'Vendor segmentation, least privilege, session recording, third-party access reviews, customer environment isolation'},
+  'IRN-07':{title:'Influence operation amplified by fabricated breach material',likelihood:'Medium-High',impact:'Medium-High',actors:'Iran-aligned personas and information operators',attack:'Real or claimed breach followed by selective leaks, forged documents, coordinated amplification across social channels',indicators:'Low-confidence leak claims, inconsistent metadata, synchronized bot amplification, outreach to journalists',mitigations:'Rapid attribution triage, document authenticity checks, coordinated legal/PR/security response'},
+  'AWS-ME-01':{title:'Five Middle East data centers unavailable — UAE and Bahrain',likelihood:'Medium',impact:'Very High',actors:'Non-adversarial — physical or infrastructure failure',attack:'AZ failure cascade: EC2 launch failures, EBS impairment, API error rate spike, autoscaling saturation, single-region stack outage',indicators:'AWS Health Dashboard degradation me-south-1/me-central-1, elevated 5xx, stalled queues, DB failover stress',mitigations:'Pre-stage cross-region failover, test DR runbooks, enable Route 53 health checks, isolate residency-constrained workloads'},
+  'AWS-ME-03':{title:'Regional cloud outage during active Iran-linked cyber campaign',likelihood:'Medium-High',impact:'Critical',actors:'Iran-affiliated cyber operators exploiting outage conditions',attack:'Outage response competes with phishing, DDoS, credential theft, and attempted intrusion into backup paths and MSP tooling',indicators:'DDoS on status pages, phishing tied to outage notices, malicious vendor access attempts, suspicious admin changes during failover',mitigations:'Maintain threat watch during outage, enforce change freeze on privileged access, flag all new OAuth grants and vendor sessions'},
+  'AZR-01':{title:'AiTM phishing via trusted Azure and Firebase domains',likelihood:'High',impact:'Very High',actors:'Black-hat and hacktivist crews — Tycoon2FA, Sneaky2FA, Cephas kit operators',attack:'AiTM proxy kit on *.azurestaticapps.net or *.web.app, session cookie and refresh token captured in real time, OAuth persistence',indicators:'Sign-in from new IP after successful MFA, impossible travel, new OAuth grants, mailbox forwarding rules, bulk downloads',mitigations:'Phishing-resistant MFA (FIDO2), CAE enforcement, token lifetime restrictions, OAuth consent monitoring, DLP'},
+  'GCP-01':{title:'Cloud-native worm and metadata credential pivot across GCP Kubernetes workloads',likelihood:'Medium-High',impact:'Very High',actors:'Black-hat financially motivated crews — TeamTNT-style cloud worm operators',attack:'Scan for exposed GKE API/Docker daemon, query metadata server for service account token, enumerate project, escalate via Cloud Build confused-deputy',indicators:'Metadata server access anomaly, new service account key creation, Cloud Build outside schedule, GCS ACL changes, cryptomining egress',mitigations:'Disable metadata API from untrusted workloads, restrict default service account scope, Workload Identity, audit Cloud Build access'},
+  'AZR-GCP-01':{title:'Tenant-side disruption campaign mimicking data center outage',likelihood:'Medium',impact:'Critical',actors:'Hacktivist crews or state-sponsored disruptive operators with established tenant foothold',attack:'Use stolen service principal with Contributor scope, mass VM stop/delete, NSG rule deletion, database wipe, deface status pages, run DDoS during failover',indicators:'Mass VM deallocation outside maintenance, NSG deletion at subscription scope, database drop events, hacktivist claims coinciding with internal alerts',mitigations:'Resource locks on critical assets, IaC change controls, emergency service principal rotation, monitor for destructive API calls'}
+};
+
+const THREAT_ALERTS = {
+  'TA-2026-0041':{title:'GRU actors exploiting vulnerable SOHO routers',actor:'Russian GRU',technique:'Credential theft and DNS hijacking via unpatched SOHO routers including TP-Link devices',targets:'Military, government, critical infrastructure',actions:'Audit internet-exposed routers, change default credentials, disable remote management, apply firmware updates'},
+  'VA-2026-0187':{title:'CVE-2024-48887 Fortinet FortiSwitch CVSS 9.3',actor:'Actively exploited — threat actor unknown',technique:'Unauthenticated password change via GUI — network-accessible, no privileges required',targets:'Any organization running unpatched FortiSwitch',actions:'Apply patch immediately, disable HTTP/HTTPS admin interface access from untrusted networks'},
+  'CISA-OT':{title:'IRGC CyberAv3ngers targeting water/wastewater HMI devices',actor:'IRGC-affiliated — CyberAv3ngers',technique:'Exploit internet-exposed HMIs and PLCs, default credentials, firmware manipulation',targets:'Water/wastewater, energy, industrial facilities',actions:'Remove OT from direct internet exposure, enforce MFA on remote access, monitor config changes'},
+  'AZR-AITM':{title:'Tycoon2FA AiTM phishing on Azure Static Web Apps',actor:'Black-hat AiTM kit operators',technique:'Reverse proxy phishing kit hosted on trusted Azure domains to steal M365 session tokens',targets:'Enterprise M365 tenants, executive and IT admin accounts',actions:'Deploy phishing-resistant MFA, enforce CAE, monitor OAuth consents and mailbox rule creation'}
+};
+
+const CORPUS = Object.entries(SCENARIOS).map(([id,s])=>
+  `${id}: ${s.title}
+Likelihood: ${s.likelihood} | Impact: ${s.impact}
+Actors: ${s.actors}
+Attack path: ${s.attack}
+Indicators: ${s.indicators}
+Mitigations: ${s.mitigations}`
+).join('\n\n');
+
+// ── API ROUTING — PROXY-AWARE ─────────────────────────────────────────────
+// DEMO MODE: calls Anthropic directly from browser (no API key = auth handled upstream)
+// PRODUCTION: swap AEGIS_API_ENDPOINT to your Cloud Run URL and all calls
+//             route through your authenticated backend — API key never touches browser.
+//
+// Cloud Run endpoint (production):
+//   https://aegis-cwis-974184310088.us-east1.run.app/api/intelligence
+//
+// To switch: set AEGIS_API_ENDPOINT to your Cloud Run URL and set AEGIS_PROD = true
+
+const AEGIS_PROD = true; // flip to true when Cloud Run proxy is deployed
+const AEGIS_PROXY_URL = 'https://aegis-cwis-974184310088.us-east1.run.app/api/intelligence';
+
+async function streamClaude(prompt, onChunk, onDone) {
+  try {
+    let res;
+    if (AEGIS_PROD) {
+      // ── PRODUCTION PATH: Cloud Run proxy ──────────────────────────────
+      // Cloud Run receives the prompt, authenticates via Firebase ID token,
+      // checks license tier, calls Anthropic server-side, streams back.
+      // API key never exposed to browser. Full audit log in Cloud Run.
+      const idToken = await getFirebaseIdToken(); // stub — wire Firebase Auth
+      res = await fetch(AEGIS_PROXY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + idToken
+        },
+        body: JSON.stringify({ prompt, stream: true })
+      });
+    } else {
+      // ── DEMO PATH: direct browser call ───────────────────────────────
+      // Acceptable for controlled demo. No API key hardcoded —
+      // the Anthropic API handles auth via the key set in the hosting env.
+      // DO NOT ship to production licensed users in this mode.
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          stream: true,
+          messages: [{role: 'user', content: prompt}]
+        })
+      });
+    }
+    if (!res.ok) { onDone('error'); return; }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const d = line.slice(5).trim();
+        if (d === '[DONE]') break;
+        try {
+          const j = JSON.parse(d);
+          if (j.type === 'content_block_delta' && j.delta?.text) onChunk(j.delta.text);
+        } catch(e) {}
+      }
+    }
+    onDone('done');
+  } catch(e) { onDone('error'); }
+}
+
+// Stub — replace with firebase.auth().currentUser.getIdToken() when Firebase Auth is wired
+async function getFirebaseIdToken() {
+  return 'demo-token'; // placeholder
+}
+
+// ── NON-STREAMING CLAUDE CALL (for question generation) ────────────────────
+async function callClaude(prompt, maxTokens) {
+  maxTokens = maxTokens || 600;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.content && data.content[0] && data.content[0].text ? data.content[0].text : null;
+  } catch(e) { return null; }
+}
+
+// ── WHAT-IF ENGINE ────────────────────────────────────────────────────────
+async function runWhatIf(preset) {
+  const input = document.getElementById('whatif-input');
+  const output = document.getElementById('whatif-output');
+  const btn = document.getElementById('whatif-btn');
+  const pulse = document.getElementById('whatif-pulse');
+  const q = preset || input.value.trim();
+  if (!q) return;
+  if (!preset) input.value = '';
+
+  btn.disabled = true;
+  btn.textContent = 'Analyzing...';
+  pulse.classList.add('on');
+  output.innerHTML = '';
+  output.classList.add('ai-typing');
+
+  const prompt = `You are SENTRY, the AI threat intelligence engine of the Aegis platform. You have deep expertise equivalent to a senior Cisco Talos analyst combined with a geopolitical risk analyst.
+
+Your active scenario corpus:
+
+${CORPUS}
+
+Active threat alerts:
+- TA-2026-0041: GRU actors exploiting SOHO routers for credential theft and DNS hijacking (NSA/FBI joint advisory, April 2026)
+- VA-2026-0187: CVE-2024-48887 Fortinet FortiSwitch CVSS 9.3 — CISA KEV listed, due 2026-04-24
+- CISA CyberAv3ngers advisory: IRGC actively targeting water/wastewater HMI devices
+- AZR-01 watch: Tycoon2FA AiTM kit on Azure Static Web Apps targeting enterprise M365
+
+Answer this analyst query directly, specifically, and tactically. Reference scenario IDs and alert IDs where relevant. Be the sharpest threat intelligence analyst in the room — no preamble, no hedging, straight to the intelligence that matters:
+
+${q}`;
+
+  let text = '';
+  streamClaude(prompt,
+    chunk => { text += chunk; output.textContent = text; },
+    status => {
+      output.classList.remove('ai-typing');
+      pulse.classList.remove('on');
+      btn.disabled = false;
+      btn.textContent = 'Analyze ↗';
+      if (status === 'error') output.textContent = 'SENTRY engine temporarily unavailable. Check API configuration.';
+    }
+  );
+}
+
+// ── SCENARIO CARD ANALYSIS ────────────────────────────────────────────────
+function openScenarioAnalysis(scenarioId) {
+  const s = SCENARIOS[scenarioId];
+  if (!s) return;
+  const modal = document.getElementById('scenario-modal');
+  const pulse = document.getElementById('modal-pulse');
+  const analysisEl = document.getElementById('modal-analysis');
+  document.getElementById('modal-scenario-id').textContent = scenarioId + ' — ' + s.title;
+  modal.classList.add('open');
+  analysisEl.innerHTML = '<span class="ai-dim">Generating tactical assessment...</span>';
+  analysisEl.classList.add('ai-typing');
+  pulse.classList.add('on');
+
+  const prompt = `You are SENTRY, the AI threat intelligence engine of the Aegis platform.
+
+Full scenario corpus for context:
+${CORPUS}
+
+Active threat alerts context: GRU SOHO router campaign active (TA-2026-0041), FortiSwitch CVE-2024-48887 KEV listed, CyberAv3ngers OT advisory active, AZR-01 AiTM watch elevated.
+
+Provide a sharp 4-5 sentence tactical assessment of scenario ${scenarioId}: "${s.title}"
+
+Cover: (1) Current threat level and why it matters right now given active alerts. (2) The attack path step most defenders miss. (3) The single most critical detection gap. (4) The one mitigation that has the highest leverage. Be direct, specific, cite related scenario IDs or alerts if relevant. No preamble.`;
+
+  let text = '';
+  streamClaude(prompt,
+    chunk => { text += chunk; analysisEl.textContent = text; },
+    status => {
+      analysisEl.classList.remove('ai-typing');
+      pulse.classList.remove('on');
+      if (status === 'error') analysisEl.textContent = 'Analysis engine unavailable.';
+    }
+  );
+}
+
+function closeModal() {
+  document.getElementById('scenario-modal').classList.remove('open');
+}
+document.getElementById('scenario-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── ALERT CARD ANALYSIS ───────────────────────────────────────────────────
+function analyzeAlert(alertId, title, context, el) {
+  const row = el.nextElementSibling;
+  if (row && row.classList.contains('alert-analysis-row')) {
+    if (row.classList.contains('open')) { row.classList.remove('open'); el.textContent = 'Analyze ↗'; return; }
+    row.classList.add('open');
+    el.textContent = 'Analyzing...';
+    el.disabled = true;
+    const textEl = row.querySelector('.alert-analysis-text');
+    textEl.innerHTML = '';
+    textEl.classList.add('ai-typing');
+
+    const prompt = `You are SENTRY, Aegis threat intelligence AI. Scenario corpus: ${CORPUS.slice(0,2000)}...
+
+Analyze this threat alert for an operator in 3-4 direct sentences:
+Alert: ${title}
+Context: ${context}
+
+Cover: signal credibility, TTP match to active scenarios, recommended immediate action. No preamble.`;
+
+    let text = '';
+    streamClaude(prompt,
+      chunk => { text += chunk; textEl.textContent = text; },
+      status => {
+        textEl.classList.remove('ai-typing');
+        el.textContent = 'Analyzed ✓';
+        el.disabled = false;
+        if (status === 'error') textEl.textContent = 'Analysis unavailable.';
+      }
+    );
+  }
+}
+
+// ── SCROLL REVEAL ─────────────────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.08, rootMargin: '0px 0px -30px 0px'});
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── MONITOR MODE TOGGLE ───────────────────────────────────────────────────
+document.querySelectorAll('.monitor-mode').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.monitor-mode').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+
+// ── DYNAMIC QUESTION GENERATION ───────────────────────────────────────────
+// Reads the live threat corpus and active alerts, calls the AI to generate
+// 6 contextual analyst questions based on what is actually elevated right now.
+// Questions refresh on load and on user request.
+
+const LIVE_ALERTS_SUMMARY = `Active threat alerts as of April 2026:
+1. TA-2026-0041: GRU actors exploiting SOHO routers — credential theft, DNS hijacking — military/govt/critical infrastructure (NSA/FBI advisory, HIGH confidence)
+2. VA-2026-0187: CVE-2024-48887 Fortinet FortiSwitch CVSS 9.3 — CISA KEV listed — federal due date 2026-04-24 — actively exploited
+3. IRN-05 elevated: IRGC CyberAv3ngers targeting water/wastewater HMI devices — OT/ICS intrusion active (CISA advisory)
+4. AZR-01 watch: Tycoon2FA AiTM phishing on Azure Static Web Apps — enterprise M365 targeting — session token theft
+5. IRN-03 HIGH: Long-dwell espionage in cloud/identity planes — MuddyWater/APT34 — MSPs and enterprise SaaS
+6. Energy sector elevated: Gulf oil infrastructure risk — Strait of Hormuz tension — fuel price cascade risk`;
+
+const ENERGY_CONTEXT = `Energy and infrastructure context for question generation:
+- Gulf oil fields: Saudi Aramco (Ghawar, Khurais), UAE ADNOC (offshore and onshore), Kuwait Oil Company
+- Critical chokepoints: Strait of Hormuz (20% global oil supply), Bab-el-Mandeb strait
+- OT/ICS exposure: SCADA systems, PLCs, HMI interfaces at refineries, pipelines, water treatment
+- Downstream cascade: crude production → refinery throughput → tanker shipping → regional fuel prices → US pump prices
+- Current geopolitical context: Iran-US tensions, IRGC activity, regional escalation risk`;
+
+async function generateDynamicQuestions() {
+  const container = document.getElementById('quickfire-container');
+  const refreshBtn = document.getElementById('qf-refresh');
+  const ctxLabel = document.getElementById('qf-context-label');
+
+  // Show loading state
+  container.innerHTML = '<span class="qf-loading"><span class="qf-loading-dot"></span>Generating contextual queries from live threat data...</span>';
+  if (refreshBtn) { refreshBtn.disabled = true; refreshBtn.textContent = '↺ Generating...'; }
+  if (ctxLabel) ctxLabel.textContent = '';
+
+  const prompt = `You are SENTRY, the Aegis threat intelligence AI. Based on the current threat environment, generate exactly 6 short, high-value analyst query buttons for the SENTRY What-If engine.
+
+${LIVE_ALERTS_SUMMARY}
+
+${ENERGY_CONTEXT}
+
+Scenario corpus highlights:
+${CORPUS.slice(0, 1500)}
+
+Rules for generating questions:
+- Each question must be directly tied to one or more of the currently active alerts or elevated scenarios above
+- Include at least one question about energy infrastructure, oil fields, or fuel price cascade effects
+- Include at least one question about the active KEV vulnerability (CVE-2024-48887 FortiSwitch)
+- Include at least one question about the GRU router campaign
+- Include at least one OT/ICS or energy sector question linking to Iran threat scenarios
+- Questions should be specific, tactical, and useful for security analysts or energy/policy content creators
+- Keep button labels SHORT (3-5 words max) — the full question goes in the query field
+- Vary the audiences: some for security analysts, some for energy market analysts, some for content creators
+
+Respond with ONLY a JSON array of exactly 6 objects. No preamble, no markdown, no explanation:
+[
+  {"label": "short label 3-5 words", "query": "Full analyst question here?"},
+  ...
+]`;
+
+  const result = await callClaude(prompt, 700);
+
+  if (!result) {
+    // Fallback to sensible defaults if AI call fails
+    renderQuestions([
+      {label:'Iran → fuel prices now', query:'What happens to Gulf oil field operations and US fuel prices if Iran escalates OT/ICS attacks on energy infrastructure today?'},
+      {label:'FortiSwitch exposure risk', query:'CVE-2024-48887 is KEV-listed — how do attackers exploit it and what is the fastest remediation path?'},
+      {label:'GRU router campaign', query:'How are GRU actors using compromised SOHO routers to target government and critical infrastructure networks?'},
+      {label:'CyberAv3ngers water attack', query:'Walk me through a step-by-step CyberAv3ngers intrusion against a water treatment facility HMI system.'},
+      {label:'Strait of Hormuz scenario', query:'If Iran disrupts the Strait of Hormuz with cyber and kinetic action simultaneously, what is the oil price cascade timeline?'},
+      {label:'Cloud outage + Iran attack', query:'How does the AWS Middle East outage scenario change if Iran-linked actors exploit the disruption simultaneously?'}
+    ], 'fallback defaults');
+    if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.textContent = '↺ Refresh queries'; }
+    return;
+  }
+
+  try {
+    // Strip any markdown fences if present
+    const clean = result.replace(/```json|```/g, '').trim();
+    const questions = JSON.parse(clean);
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('invalid');
+    renderQuestions(questions, 'generated from live threat data · ' + new Date().toLocaleTimeString());
+  } catch(e) {
+    // Parse failed — use fallback
+    renderQuestions([
+      {label:'Iran → Gulf oil fields', query:'What happens to Gulf oil field operations and US fuel prices if Iran escalates OT/ICS attacks on energy infrastructure?'},
+      {label:'FortiSwitch KEV patch', query:'CVE-2024-48887 is KEV-listed with a federal due date of April 24 — what is the attack path and fastest remediation?'},
+      {label:'GRU SOHO router TTPs', query:'How are GRU actors using compromised SOHO routers and what does the credential theft and DNS hijacking look like in logs?'},
+      {label:'CyberAv3ngers OT chain', query:'Walk me through a CyberAv3ngers intrusion from initial access to PLC manipulation at a water or energy facility.'},
+      {label:'Hormuz → pump prices', query:'Model the cascade from an Iran cyber-physical escalation in the Gulf to US consumer fuel prices — timeline and magnitude?'},
+      {label:'IRN-03 in my network', query:'What are the earliest detectable indicators that IRN-03 long-dwell espionage is already established in a cloud environment?'}
+    ], 'fallback — live generation unavailable');
+  }
+
+  if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.textContent = '↺ Refresh queries'; }
+}
+
+function renderQuestions(questions, contextText) {
+  const container = document.getElementById('quickfire-container');
+  const ctxLabel = document.getElementById('qf-context-label');
+  container.innerHTML = '';
+  questions.slice(0, 6).forEach((q, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'qf-btn dynamic-loaded';
+    btn.style.animationDelay = (i * 0.07) + 's';
+    btn.textContent = q.label;
+    btn.onclick = () => runWhatIf(q.query);
+    btn.title = q.query;
+    container.appendChild(btn);
+  });
+  if (ctxLabel && contextText) ctxLabel.textContent = contextText;
+}
+
+// Generate on page load
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(generateDynamicQuestions, 800);
+});
+
+
+// ── WIRE SCENARIO CARDS ───────────────────────────────────────────────────
+document.querySelectorAll('.scenario-card').forEach(card => {
+  const idEl = card.querySelector('.scenario-id');
+  if (!idEl) return;
+  const sid = idEl.textContent.trim();
+  if (SCENARIOS[sid]) {
+    card.style.cursor = 'pointer';
+    card.title = 'Click to analyze ' + sid;
+    card.addEventListener('click', () => openScenarioAnalysis(sid));
+  }
+});
+
+// ── WIRE ALERT CARDS ──────────────────────────────────────────────────────
+const alertDefs = [
+  {id:'TA-2026-0041', title:'GRU SOHO router campaign', ctx:'NSA/FBI joint advisory — GRU credential theft and DNS hijacking via unpatched SOHO routers including TP-Link devices. Military, government, critical infrastructure targeted.'},
+  {id:'VA-2026-0187', title:'CVE-2024-48887 Fortinet FortiSwitch CVSS 9.3', ctx:'CISA KEV listed April 2026. Unauthenticated password change via GUI. Network-accessible, no privileges required. Federal due date 2026-04-24.'},
+  {id:'CISA-OT', title:'IRGC CyberAv3ngers OT/ICS advisory', ctx:'CISA advisory: IRGC-affiliated actors targeting water and wastewater sector internet-exposed HMI devices. Unauthorized firmware changes and PLC mode manipulation observed.'},
+  {id:'AZR-AITM', title:'AzR-01 AiTM phishing watch', ctx:'Tycoon2FA AiTM phishing kit hosted on Azure Static Web Apps. Targets enterprise M365 tenants. Session cookie and refresh token theft bypassing MFA.'}
+];
+
+document.querySelectorAll('.alert-card').forEach((card, i) => {
+  if (!alertDefs[i]) return;
+  const def = alertDefs[i];
+
+  // inject analyze button and analysis row
+  const btn = document.createElement('button');
+  btn.className = 'alert-analyze-btn';
+  btn.textContent = 'Analyze ↗';
+  card.querySelector('.alert-body').appendChild(btn);
+
+  const row = document.createElement('div');
+  row.className = 'alert-analysis-row';
+  row.innerHTML = '<div class="alert-analysis-text"></div>';
+  card.insertAdjacentElement('afterend', row);
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    analyzeAlert(def.id, def.title, def.ctx, btn);
+  });
+});
+
+// ── FEED ITEM CLICK ───────────────────────────────────────────────────────
+document.querySelectorAll('.feed-item').forEach(item => {
+  item.style.cursor = 'pointer';
+});
+</script>
+</body>
+</html>

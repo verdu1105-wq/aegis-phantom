@@ -1,0 +1,17 @@
+﻿# .gcloudignore
+airlock_engine.py
+airlock_engine_backup.py
+radar.py
+cwis_engine.py
+fix_vault.py
+fix_unique_id.py
+follower_scrape.py
+recover_goons.py
+deploy.py
+*.html
+*.json
+goon_*
+evidence_*
+__pycache__/
+.env
+New folder/

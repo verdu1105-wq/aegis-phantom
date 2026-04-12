@@ -17,12 +17,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 import uvicorn
 
-load_dotenv(r"C:\Users\VernonDunbar\Documents\LiveGuardPro\.env")
+load_dotenv(r"C:\Users\VernonDunbar\Documents\Aegis_Phantom\.env")
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 WebDefaults.tiktok_sign_api_key = os.getenv("TIKTOK_SIGN_API_KEY")
 
-TARGET       = os.getenv("TIKTOK_TARGET", "cavalryspice")
+TARGET       = os.getenv("TIKTOK_TARGET", "essayons123")
 CLOUD_URL    = "https://aegis-phantom-974184310088.us-east1.run.app"
 CLOUD_TOKEN  = os.getenv("AEGIS_CLOUD_TOKEN", "")
 
@@ -360,7 +360,7 @@ async def load_goon_vault():
     global goon_vault
     try:
         import redis as redis_lib
-        r = redis_lib.from_url("redis://:DTqOikGrN26czTE4b4DWgj5Tkz849aq8@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
+        r = redis_lib.from_url("redis://:LrQmHLtx7RjHAeGis26@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
         raw = r.smembers("goons")
         goon_vault = set(g.decode() for g in raw)
         print(f"🛡️ Vault loaded: {len(goon_vault)} goons from Redis Cloud")

@@ -5,7 +5,7 @@ Run on Pi: python3.9 recover_goons.py
 """
 import redis, os
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://:DTqOikGrN26czTE4b4DWgj5Tkz849aq8@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
+REDIS_URL = os.getenv("REDIS_URL", "redis://:LrQmHLtx7RjH@Sy68@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
 
 MISSING_GOONS = [
     "adrian.maldonado688","airbourne_rucca82nd","alejandrogarci5500","alepat199",
