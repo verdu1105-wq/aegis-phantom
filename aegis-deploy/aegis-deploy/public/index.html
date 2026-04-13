@@ -1393,6 +1393,28 @@ Mitigations: ${s.mitigations}`
 const AEGIS_PROD = true; // flip to true when Cloud Run proxy is deployed
 const AEGIS_PROXY_URL = 'https://aegis-cwis-974184310088.us-east1.run.app/api/intelligence';
 
+// ── VIP ACCESS ─────────────────────────────────────────────────────────────
+const AEGIS_ACCESS = {
+  'arlene': 'institutional',
+  'viera': 'institutional',
+  'vernon': 'institutional',
+  'founder': 'institutional',
+  'demo': 'sentry'
+};
+
+const aegisParams = new URLSearchParams(window.location.search);
+const aegisKey = aegisParams.get('access') || '';
+const aegisTier = AEGIS_ACCESS[aegisKey.toLowerCase()] || 'public';
+
+if (aegisTier === 'institutional') {
+  // Welcome banner for institutional access
+  const banner = document.createElement('div');
+  banner.style.cssText = 'background:#0a0f1a;color:#eef0ff;text-align:center;padding:.5rem;font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #c0392b;position:relative;z-index:200';
+  banner.innerHTML = '<span style="color:#c0392b">&#9679;</span> SENTRY INSTITUTIONAL ACCESS ENABLED &mdash; AEGIS INTELLIGENCE PLATFORM &middot; <a href="mailto:access@cybergstech.com" style="color:#c0392b;text-decoration:none">CONTACT TEAM</a>';
+  document.body.insertBefore(banner, document.body.firstChild);
+}
+
+
 async function streamClaude(prompt, onChunk, onDone) {
   try {
     let res;
