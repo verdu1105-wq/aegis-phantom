@@ -18,6 +18,7 @@ import jwt
 from dotenv import load_dotenv
 from creator_mode import creator_router
 from zeroday_monitor import zeroday_router
+from youtube_monitor import yt_router 
 load_dotenv()
 # --- CONFIG ---
 JWT_SECRET     = os.getenv("JWT_SECRET", secrets.token_hex(32))
@@ -61,6 +62,7 @@ app.add_middleware(
 )
 app.include_router(zeroday_router)
 app.include_router(creator_router)
+app.include_router(yt_router)
 security = HTTPBearer(auto_error=False)
 # --- JWT HELPERS ---
 def create_token(username: str, role: str, display: str) -> str:
