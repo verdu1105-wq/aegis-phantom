@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from creator_mode import creator_router
 from zeroday_monitor import zeroday_router
 from youtube_monitor import yt_router 
+from deep6 import deep6_router, increment_and_check 
 load_dotenv()
 # --- CONFIG ---
 JWT_SECRET     = os.getenv("JWT_SECRET", secrets.token_hex(32))
@@ -63,6 +64,7 @@ app.add_middleware(
 app.include_router(zeroday_router)
 app.include_router(creator_router)
 app.include_router(yt_router)
+app.include_router(deep6_router)
 security = HTTPBearer(auto_error=False)
 # --- JWT HELPERS ---
 def create_token(username: str, role: str, display: str) -> str:
@@ -239,6 +241,9 @@ async def add_goon(request: Request, user: dict = Depends(get_current_user)):
     if r:
         r.sadd("goons", username)
     await manager.broadcast({"type": "goon_added", "username": username, "added_by": user["display"]})
+    # Deep6 — trigger pattern analysis every 5 uploads
+    if increment_and_check():
+        asyncio.create_task(deep6_router.trigger_auto())
     return {"status": "added", "username": username}
 
 @app.delete("/api/goons/{username}")
