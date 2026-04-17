@@ -20,6 +20,7 @@ from creator_mode import creator_router
 from zeroday_monitor import zeroday_router
 from youtube_monitor import yt_router 
 from deep6 import deep6_router, increment_and_check 
+from sitrep_router import sitrep_router
 load_dotenv()
 # --- CONFIG ---
 JWT_SECRET     = os.getenv("JWT_SECRET", secrets.token_hex(32))
@@ -65,6 +66,7 @@ app.include_router(zeroday_router)
 app.include_router(creator_router)
 app.include_router(yt_router)
 app.include_router(deep6_router)
+app.include_router(sitrep_router)
 security = HTTPBearer(auto_error=False)
 # --- JWT HELPERS ---
 def create_token(username: str, role: str, display: str) -> str:
