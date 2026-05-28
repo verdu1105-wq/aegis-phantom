@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AEGIS MOD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080c14;--panel:#0d1421;--panel2:#111b2e;
+  --cyan:#00d4ff;--green:#00ff88;--red:#ff3b3b;
+  --amber:#ffb300;--dim:#4a5568;--text:#b0bec5;
+  --white:#e8f0fe;--border:rgba(0,212,255,0.15);
+  --mono:'Share Tech Mono',monospace;--orn:'Orbitron',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:var(--mono);}
+
+/* LOGIN */
+#login{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+.lbox{background:var(--panel);border:1px solid var(--border);padding:28px 22px;width:100%;max-width:320px;border-top:3px solid var(--cyan);}
+.lbox h1{font-family:var(--orn);font-size:16px;letter-spacing:4px;color:var(--cyan);text-align:center;margin-bottom:4px;}
+.lbox p{font-size:9px;letter-spacing:2px;color:var(--dim);text-align:center;margin-bottom:20px;}
+.lf{margin-bottom:12px;}
+.lf label{display:block;font-size:8px;letter-spacing:2px;color:var(--dim);margin-bottom:5px;}
+.lf input{width:100%;background:rgba(0,212,255,0.05);border:1px solid var(--border);color:var(--white);font-family:var(--mono);font-size:14px;padding:12px 10px;outline:none;}
+.lf input:focus{border-color:var(--cyan);}
+.lbtn{width:100%;font-family:var(--orn);font-size:11px;padding:14px;border:1px solid var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08);cursor:pointer;letter-spacing:3px;margin-top:8px;}
+.lbtn:active{background:rgba(0,212,255,0.15);}
+.lerr{color:var(--red);font-size:10px;margin-top:8px;text-align:center;min-height:14px;}
+
+/* APP SHELL */
+#app{display:none;flex-direction:column;height:100%;}
+
+/* TOP BAR */
+#topbar{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.tb-logo{font-family:var(--orn);font-size:13px;color:var(--cyan);letter-spacing:3px;}
+.tb-status{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:1px;}
+.tb-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.tb-user{color:var(--cyan);font-size:9px;}
+.tb-vault{color:var(--amber);font-size:9px;}
+
+/* STATUS BAR */
+#statusbar{background:rgba(0,0,0,0.3);border-bottom:1px solid var(--border);padding:6px 14px;display:flex;gap:16px;font-size:9px;letter-spacing:1px;flex-shrink:0;}
+.sb-item{color:var(--dim);}
+.sb-item span{color:var(--white);font-weight:700;}
+.sb-item span.r{color:var(--red);}
+.sb-item span.g{color:var(--green);}
+.sb-item span.a{color:var(--amber);}
+
+/* FEED */
+#feed-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 0;}
+.fe{display:flex;align-items:flex-start;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);position:relative;}
+.fe.threat{background:rgba(255,59,59,0.07);border-left:3px solid var(--red);}
+.fe.watch{background:rgba(255,179,0,0.04);border-left:3px solid var(--amber);}
+.fe.friendly{background:rgba(0,255,136,0.04);border-left:3px solid var(--green);}
+.fe.kill{background:rgba(0,255,136,0.06);border-left:3px solid var(--green);}
+.fe.rotate{background:rgba(0,212,255,0.06);border-left:3px solid var(--cyan);}
+.ftime{font-size:9px;color:var(--dim);white-space:nowrap;padding-top:2px;min-width:44px;flex-shrink:0;}
+.ftext{font-size:13px;color:var(--text);line-height:1.4;word-break:break-word;flex:1;}
+.rag-u{font-weight:700;}
+.rag-u.r{color:var(--red);}
+.rag-u.a{color:var(--amber);}
+.rag-u.g{color:var(--green);}
+.rag-badge{font-size:8px;padding:1px 5px;border-radius:2px;font-family:var(--orn);letter-spacing:1px;margin-left:4px;vertical-align:middle;}
+.rag-badge.r{background:rgba(255,59,59,0.2);color:var(--red);border:1px solid rgba(255,59,59,0.3);}
+.rag-badge.a{background:rgba(255,179,0,0.2);color:var(--amber);border:1px solid rgba(255,179,0,0.3);}
+.rag-badge.g{background:rgba(0,255,136,0.2);color:var(--green);border:1px solid rgba(0,255,136,0.3);}
+.fe-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.fe-btn{font-family:var(--orn);font-size:8px;letter-spacing:1px;padding:5px 10px;border:1px solid;cursor:pointer;background:transparent;}
+.fe-btn.block{color:var(--red);border-color:rgba(255,59,59,0.4);}
+.fe-btn.block:active{background:rgba(255,59,59,0.15);}
+.fe-btn.flag{color:var(--amber);border-color:rgba(255,179,0,0.4);}
+.fe-btn.flag:active{background:rgba(255,179,0,0.15);}
+.fe-btn.vouch{color:var(--green);border-color:rgba(0,255,136,0.4);}
+.fe-btn.vouch:active{background:rgba(0,255,136,0.15);}
+.fe-empty{text-align:center;padding:60px 20px;color:var(--dim);font-size:11px;letter-spacing:2px;}
+
+/* BOTTOM ACTION BAR */
+#actionbar{background:var(--panel);border-top:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;flex-shrink:0;}
+#action-input{flex:1;background:rgba(0,212,255,0.05);border:1px solid var(--border);color:var(--white);font-family:var(--mono);font-size:14px;padding:11px 10px;outline:none;}
+#action-input:focus{border-color:var(--cyan);}
+.ab-btn{font-family:var(--orn);font-size:9px;letter-spacing:1px;padding:11px 14px;border:none;cursor:pointer;flex-shrink:0;}
+.ab-btn.block{background:rgba(255,59,59,0.15);color:var(--red);border:1px solid rgba(255,59,59,0.3);}
+.ab-btn.block:active{background:rgba(255,59,59,0.3);}
+.ab-btn.vault{background:rgba(255,179,0,0.1);color:var(--amber);border:1px solid rgba(255,179,0,0.3);}
+.ab-btn.vault:active{background:rgba(255,179,0,0.2);}
+
+/* MODE INDICATOR */
+#mode-bar{background:var(--panel2);border-bottom:1px solid var(--border);padding:6px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.mode-label{font-family:var(--orn);font-size:9px;letter-spacing:2px;color:var(--dim);}
+#mode-display{font-family:var(--orn);font-size:10px;letter-spacing:2px;color:var(--green);}
+#target-display{font-size:9px;color:var(--cyan);letter-spacing:1px;}
+
+/* CWIS KILL FLASH */
+#kill-flash{position:fixed;inset:0;pointer-events:none;z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;}
+#kill-flash.show{animation:kflash 1.5s ease-out forwards;}
+@keyframes kflash{0%{opacity:1;background:rgba(0,255,136,0.12)}20%{opacity:1;background:rgba(0,255,136,0.18)}100%{opacity:0;background:transparent}}
+#kill-card{background:rgba(0,0,0,0.9);border:2px solid var(--green);padding:20px 28px;text-align:center;border-radius:4px;}
+#kill-num{font-family:var(--orn);font-size:44px;font-weight:900;color:var(--green);line-height:1;text-shadow:0 0 20px rgba(0,255,136,0.6);}
+#kill-lbl{font-family:var(--orn);font-size:9px;letter-spacing:3px;color:var(--green);margin-top:4px;}
+#kill-who{font-family:var(--orn);font-size:12px;color:var(--cyan);margin-top:8px;}
+
+/* NOTIFICATION TOAST */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);padding:10px 18px;font-size:11px;letter-spacing:1px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:500;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="lbox">
+    <h1>AEGIS</h1>
+    <p>MOD STATION</p>
+    <div class="lf"><label>OPERATOR ID</label><input type="text" id="lu" autocapitalize="none" autocomplete="off" placeholder="username"></div>
+    <div class="lf"><label>ACCESS CODE</label><input type="password" id="lp" placeholder="••••••••"></div>
+    <button class="lbtn" onclick="doLogin()">AUTHENTICATE</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topbar">
+    <span class="tb-logo">AEGIS MOD</span>
+    <div class="tb-status">
+      <span class="tb-dot"></span>
+      <span class="tb-user" id="tb-user">—</span>
+      <span class="tb-vault">VAULT <span id="tb-vault-count">—</span></span>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <div class="sb-item">KILLS <span class="r" id="sb-kills">0</span></div>
+    <div class="sb-item">JOINS <span id="sb-joins">0</span></div>
+    <div class="sb-item">MODE <span class="g" id="sb-mode">WATCH</span></div>
+    <div class="sb-item">TARGET <span class="a" id="sb-target">—</span></div>
+  </div>
+
+  <div id="mode-bar">
+    <span class="mode-label">CWIS</span>
+    <span id="mode-display">⚡ WATCH MODE</span>
+    <span id="target-display">@—</span>
+  </div>
+
+  <div id="feed-wrap">
+    <div id="feed">
+      <div class="fe-empty" id="feed-empty">🛡️ AEGIS MOD STATION<br>Waiting for stream events...</div>
+    </div>
+  </div>
+
+  <div id="actionbar">
+    <input type="text" id="action-input" placeholder="@username" autocapitalize="none" autocomplete="off"
+      onkeydown="if(event.key==='Enter')quickBlock()">
+    <button class="ab-btn block" onclick="quickBlock()">🚫 BLOCK</button>
+    <button class="ab-btn vault" onclick="quickVault()">☠ VAULT</button>
+  </div>
+</div>
+
+<!-- CWIS KILL FLASH -->
+<div id="kill-flash">
+  <div id="kill-card">
+    <div id="kill-num">0</div>
+    <div id="kill-lbl">☠ CWIS KILL ☠</div>
+    <div id="kill-who"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+const API = 'https://aegis-cwis-974184310088.us-east1.run.app';
+let token = null, ws = null, kills = 0, joins = 0;
+let goons = [], whitelist = [], currentTarget = '';
+let seenIds = new Set();
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('lu').value.trim().toLowerCase();
+  const p = document.getElementById('lp').value;
+  const err = document.getElementById('lerr');
+  err.textContent = '';
+  try {
+    const r = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username:u, password:p})
+    });
+    if (!r.ok) { err.textContent = 'ACCESS DENIED'; return; }
+    const d = await r.json();
+    token = d.token;
+    document.getElementById('tb-user').textContent = d.display || u.toUpperCase();
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    bootMod();
+  } catch(e) { err.textContent = 'CONNECTION FAILED'; }
+}
+
+async function bootMod() {
+  await loadVault();
+  await loadWhitelist();
+  connectWS();
+  setInterval(loadVault, 60000);
+}
+
+async function authFetch(path, method='GET', body=null) {
+  const opts = {method, headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+async function loadVault() {
+  try {
+    const d = await authFetch('/api/goons');
+    goons = (d.goons || []).map(g => g.toLowerCase());
+    document.getElementById('tb-vault-count').textContent = goons.length;
+  } catch(e) {}
+}
+
+async function loadWhitelist() {
+  try {
+    const d = await authFetch('/api/whitelist');
+    whitelist = (d.whitelist || []).map(u => u.toLowerCase());
+  } catch(e) {}
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────────────────────────
+function connectWS() {
+  if (ws) ws.close();
+  ws = new WebSocket(`${API.replace('https','wss')}/ws/dashboard?token=${token}`);
+  ws.onopen = () => { document.querySelector('.tb-dot').style.background = 'var(--green)'; };
+  ws.onmessage = e => handleMsg(JSON.parse(e.data));
+  ws.onclose = () => {
+    document.querySelector('.tb-dot').style.background = 'var(--red)';
+    setTimeout(connectWS, 3000);
+  };
+  ws.onerror = () => ws.close();
+}
+
+function handleMsg(d) {
+  if (d.type === 'ping') return;
+  if (d.event_id && seenIds.has(d.event_id)) return;
+  if (d.event_id) { seenIds.add(d.event_id); if(seenIds.size>300) seenIds.clear(); }
+
+  if (d.type === 'join' || d.type === 'comment') {
+    const u = d.username || '';
+    const isGoon = d.is_goon || goons.includes(u.toLowerCase());
+    const rc = whitelist.includes(u.toLowerCase()) ? 'g' : isGoon ? 'r' : 'a';
+    const icon = rc==='r' ? '🚨' : rc==='g' ? '✅' : '👤';
+    const extra = d.type==='comment' ? `: ${d.comment||''}` : '— JOIN';
+    addFeed(icon, u, rc, extra, d.type==='r');
+    if (d.type==='join') { joins++; document.getElementById('sb-joins').textContent=joins; }
+  }
+
+  if (d.type === 'cwis_block') {
+    const u = d.username || '';
+    kills++;
+    document.getElementById('sb-kills').textContent = kills;
+    addFeed('🔫', u, 'r', `— CWIS KILL #${kills}`, false);
+    showKillFlash(u, kills);
+    playAlert();
+  }
+
+  if (d.type === 'mode_change') {
+    const m = d.mode || 'WATCH';
+    document.getElementById('sb-mode').textContent = m;
+    document.getElementById('mode-display').textContent = `⚡ ${m} MODE`;
+    document.getElementById('mode-display').style.color =
+      m==='BLOCK'?'var(--red)':m==='LOCKDOWN'?'var(--amber)':m==='STEALTH'?'var(--dim)':'var(--green)';
+  }
+
+  if (d.type === 'radar_locked' || d.type === 'pitop_online') {
+    const t = d.target || (d.data && d.data.target) || currentTarget;
+    if (t) { currentTarget = t; document.getElementById('sb-target').textContent=t; document.getElementById('target-display').textContent='@'+t; }
+  }
+}
+
+// ── FEED ──────────────────────────────────────────────────────────────────────
+function addFeed(icon, username, rc, extra, autoExpand) {
+  const feed = document.getElementById('feed');
+  const empty = document.getElementById('feed-empty');
+  if (empty) empty.style.display = 'none';
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el = document.createElement('div');
+  const cls = rc==='r'?'threat':rc==='g'?'friendly':'watch';
+  el.className = `fe ${cls}`;
+  const badge = `<span class="rag-badge ${rc}">${rc==='r'?'THREAT':rc==='g'?'CLEAR':'WATCH'}</span>`;
+  const canBlock = rc !== 'g';
+  el.innerHTML = `
+    <span class="ftime">${t}</span>
+    <div style="flex:1">
+      <div class="ftext">${icon} <span class="rag-u ${rc}">@${esc(username)}</span>${badge}${extra ? ' <span style="color:var(--text);font-size:12px">'+esc(extra)+'</span>' : ''}</div>
+      ${canBlock && username ? `<div class="fe-actions">
+        <button class="fe-btn block" onclick="blockUser('${username}',this)">🚫 BLOCK</button>
+        <button class="fe-btn flag" onclick="flagUser('${username}',this)">🚩 FLAG</button>
+        <button class="fe-btn vouch" onclick="vouchUser('${username}',this)">✅ VOUCH</button>
+      </div>` : ''}
+    </div>`;
+  feed.insertBefore(el, feed.firstChild);
+  while(feed.children.length > 200) feed.removeChild(feed.lastChild);
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+async function blockUser(u, btn) {
+  try { await authFetch('/api/block','POST',{username:u,reason:'mod_block'}); } catch{}
+  if (!goons.includes(u.toLowerCase())) goons.push(u.toLowerCase());
+  if (btn) { btn.textContent='✓ BLOCKED'; btn.disabled=true; btn.style.opacity='0.5'; }
+  toast(`🚫 @${u} blocked`);
+}
+
+async function flagUser(u, btn) {
+  toast(`🚩 @${u} flagged for report`);
+  if (btn) { btn.textContent='✓ FLAGGED'; btn.disabled=true; btn.style.opacity='0.5'; }
+}
+
+async function vouchUser(u, btn) {
+  try { await authFetch('/api/whitelist','POST',{username:u}); } catch{}
+  whitelist.push(u.toLowerCase());
+  if (btn) { btn.textContent='✓ VOUCHED'; btn.disabled=true; btn.style.opacity='0.5'; }
+  toast(`✅ @${u} vouched`);
+}
+
+async function quickBlock() {
+  const inp = document.getElementById('action-input');
+  const u = inp.value.trim().replace('@','');
+  if (!u) return;
+  inp.value = '';
+  await blockUser(u, null);
+}
+
+async function quickVault() {
+  const inp = document.getElementById('action-input');
+  const u = inp.value.trim().replace('@','');
+  if (!u) return;
+  inp.value = '';
+  try { await authFetch('/api/goons','POST',{username:u}); } catch{}
+  if (!goons.includes(u.toLowerCase())) goons.push(u.toLowerCase());
+  document.getElementById('tb-vault-count').textContent = goons.length;
+  toast(`☠ @${u} added to vault`);
+}
+
+// ── CWIS KILL FLASH ───────────────────────────────────────────────────────────
+function showKillFlash(u, num) {
+  const f = document.getElementById('kill-flash');
+  f.classList.remove('show');
+  void f.offsetWidth;
+  document.getElementById('kill-num').textContent = num;
+  document.getElementById('kill-who').textContent = '@' + u;
+  f.classList.add('show');
+}
+
+function playAlert() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [[0,880,440],[0.18,1100,220]].forEach(([d,s,e]) => {
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.setValueAtTime(s,ctx.currentTime+d);
+      o.frequency.exponentialRampToValueAtTime(e,ctx.currentTime+d+0.18);
+      g.gain.setValueAtTime(0.25,ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d+0.22);
+      o.start(ctx.currentTime+d); o.stop(ctx.currentTime+d+0.22);
+    });
+  } catch(e) {}
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// Enter key on login
+document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>

@@ -21,15 +21,7 @@ from zeroday_monitor import zeroday_router
 from youtube_monitor import yt_router 
 from deep6 import deep6_router, increment_and_check 
 from sitrep_router import sitrep_router
-from publish_router import publish_router
-from bg_generator_router import bg_router
-from stripe_router import stripe_router
-from asset_image_cache import cache_router
-from marketing_agent import marketing_router
-from service_engineer import svc_router
-from tts_router import tts_router
 from theater_router import theater_router
-from token_refresh_router import router as token_refresh_router
 load_dotenv()
 # --- CONFIG ---
 JWT_SECRET     = os.getenv("JWT_SECRET", secrets.token_hex(32))
@@ -50,15 +42,15 @@ USERS = {
         "role": "MOD",
         "display": "JESS"
     },
-    "d4rkn8t": {
-        "password_hash": hashlib.sha256("aegis2026d4rk".encode()).hexdigest(),
-        "role": "MOD",
-        "display": "D4RKN8T"
-    },
     "mistalina": {
         "password_hash": hashlib.sha256("aegis2026mist".encode()).hexdigest(),
         "role": "MOD",
         "display": "MISTALINA"
+    },
+    "d4rkn8t": {
+        "password_hash": hashlib.sha256("aegis2026d4rk".encode()).hexdigest(),
+        "role": "MOD",
+        "display": "D4RKN8T"
     },
 }
 try:
@@ -76,20 +68,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(zeroday_router)
-app.include_router(cache_router)
-app.include_router(marketing_router)
-app.include_router(svc_router)
-app.include_router(stripe_router)
+app.include_router(creator_router)
 app.include_router(yt_router)
 app.include_router(deep6_router)
 app.include_router(sitrep_router)
-app.include_router(publish_router)
-app.include_router(bg_router)
-app.include_router(tts_router)
 app.include_router(theater_router)
-app.include_router(token_refresh_router)
 security = HTTPBearer(auto_error=False)
 # --- JWT HELPERS ---
 def create_token(username: str, role: str, display: str) -> str:
@@ -127,30 +111,6 @@ def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(securi
     return verify_token(credentials.credentials)
 
 # --- CONNECTION MANAGER ---
-# -- REDIS PUB/SUB LISTENER ----------------------------------------------------
-_pubsub_started = False
-
-async def redis_pubsub_listener():
-    if not r:
-        return
-    try:
-        import redis as redis_lib
-        ps = redis_lib.from_url(os.getenv("REDIS_URL",""), decode_responses=True, socket_connect_timeout=5)
-        pubsub = ps.pubsub()
-        pubsub.subscribe("aegis:feed")
-        print("Redis pub/sub listener active on aegis:feed")
-        loop = asyncio.get_event_loop()
-        while True:
-            msg = await loop.run_in_executor(None, pubsub.get_message, True, 0.1)
-            if msg and msg.get("type") == "message":
-                try:
-                    await manager.broadcast(json.loads(msg["data"]))
-                except Exception as e:
-                    pass
-            await asyncio.sleep(0.05)
-    except Exception as e:
-        print(f"Pub/sub error: {e}")
-
 class ConnectionManager:
     def __init__(self):
         self.connections: list[tuple[WebSocket, dict]] = []
@@ -300,9 +260,9 @@ async def add_goon(request: Request, user: dict = Depends(get_current_user)):
     if r:
         r.sadd("goons", username)
     await manager.broadcast({"type": "goon_added", "username": username, "added_by": user["display"]})
-    # Deep6 -- trigger pattern analysis every 5 uploads
+    # Deep6 — trigger pattern analysis every 5 uploads
     if increment_and_check():
-        pass  # deep6 auto-trigger removed
+        asyncio.create_task(deep6_router.trigger_auto())
     return {"status": "added", "username": username}
 
 @app.delete("/api/goons/{username}")
@@ -310,16 +270,6 @@ async def remove_goon(username: str, user: dict = Depends(require_admin)):
     if r:
         r.srem("goons", username.lower())
     return {"status": "removed", "username": username}
-
-@app.get("/api/vault/count")
-async def vault_count(user: dict = Depends(get_current_user)):
-    """Returns live vault + goon counts from Redis."""
-    if not r:
-        return {"count": 0, "goons": 0, "vault": 0}
-    goons = r.scard("goons") or 0
-    vault = r.scard("vault:index") or 0
-    total = max(goons, vault)
-    return {"count": total, "goons": goons, "vault": vault}
 
 # --- WHITELIST ---
 @app.get("/api/whitelist")
@@ -392,7 +342,7 @@ async def vision_scan(request: Request, user: dict = Depends(get_current_user)):
         async with httpx.AsyncClient(timeout=30) as http:
             resp = await http.post(
                 "https://api.anthropic.com/v1/messages",
-                headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-beta": "messages-2023-12-15"},
+                headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01"},
                 json={"model": "claude-haiku-4-5-20251001", "max_tokens": 500, "messages": [{"role": "user", "content": [
                     {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": image_b64}},
                     {"type": "text", "text": "Extract all TikTok usernames from this screenshot. Look for usernames shown after @ symbols AND usernames displayed on profile pages without @. Also look for display names next to username handles. Return ONLY the usernames one per line without the @ symbol. If none found return none."}
@@ -410,31 +360,19 @@ async def vision_scan(request: Request, user: dict = Depends(get_current_user)):
 async def intercept(request: Request):
     data = await request.json()
     username = data.get("username", "")
-    event_id = data.get("event_id", "")
     is_goon = False
     if r and username:
         is_goon = r.sismember("goons", username.lower())
-    # Dedup -- skip if we've seen this event_id in last 10s
-    if event_id and r:
-        dedup_key = f"aegis:dedup:{event_id}"
-        if r.exists(dedup_key):
-            return {"status": "duplicate"}
-        r.setex(dedup_key, 10, "1")
-    payload = {
-        "type":      data.get("type", "comment"),
+    await manager.broadcast({
+        "type":      "comment",
         "username":  username,
         "comment":   data.get("comment", ""),
         "is_goon":   is_goon,
         "hostile":   data.get("hostile", False),
         "action":    "BLOCK" if is_goon else "WATCH",
         "is_threat": is_goon,
-        "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
-        "event_id":  event_id
-    }
-    await manager.broadcast(payload)
-    if r:
-        try: r.publish("aegis:feed", json.dumps(payload))
-        except: pass
+        "timestamp": datetime.utcnow().strftime("%H:%M:%S")
+    })
     return {"status": "ok"}
 
 @app.post("/intel")
@@ -463,11 +401,6 @@ async def ws_dashboard(ws: WebSocket, token: str = None):
     if not payload:
         await ws.close(code=4001)
         return
-    global _pubsub_started
-    if not _pubsub_started:
-        _pubsub_started = True
-        asyncio.create_task(redis_pubsub_listener())
-        print("Redis pub/sub listener started on first WS connect")
     await manager.connect(ws, payload)
     try:
         await ws.send_json({"type": "online_users", "users": manager.get_online_users()})
@@ -667,7 +600,7 @@ async def intelligence_proxy(request: Request):
             return JSONResponse(content=resp.json())
 
 
-# -- WIKIPEDIA IMAGE PROXY -----------------------------------------------------
+# ── WIKIPEDIA IMAGE PROXY ─────────────────────────────────────────────────────
 ASSET_WIKI_MAP = {
     # Military hardware
     "f35":          "F-35_Lightning_II",
@@ -748,7 +681,7 @@ ASSET_WIKI_MAP = {
     "vbss":         "Visit,_board,_search_and_seizure",
 }
 
-# -- BRIEF IMAGE KEY EXTRACTOR -------------------------------------------------
+# ── BRIEF IMAGE KEY EXTRACTOR ─────────────────────────────────────────────────
 def extract_image_key(title: str, category: str) -> str:
     """Pick the best ASSET_WIKI_MAP key from a brief title."""
     title_lower = title.lower()
@@ -764,7 +697,7 @@ def extract_image_key(title: str, category: str) -> str:
 
 @app.get("/api/image/proxy")
 async def proxy_image_url(url: str):
-    """Proxy any image URL through Cloud Run -- bypasses CORS for the browser."""
+    """Proxy any image URL through Cloud Run — bypasses CORS for the browser."""
     try:
         async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
             resp = await client.get(url, headers={
@@ -784,7 +717,7 @@ async def proxy_image_url(url: str):
 
 @app.get("/api/image/{asset_key}")
 async def get_asset_image(asset_key: str):
-    """Proxy Wikipedia REST API to get asset images -- bypasses browser CORS."""
+    """Proxy Wikipedia REST API to get asset images — bypasses browser CORS."""
     article = ASSET_WIKI_MAP.get(asset_key.lower(), asset_key.replace("-", "_"))
     wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{article}"
     try:
@@ -815,12 +748,12 @@ async def get_asset_image(asset_key: str):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-# -- IMAGEN DEBUG ENDPOINT -----------------------------------------------------
+# ── IMAGEN DEBUG ENDPOINT ─────────────────────────────────────────────────────
 
 @app.get("/api/generate/image")
 async def generate_image_proxy(prompt: str, style: str = "cinematic", seed: int = 0):
     """
-    Server-side Pollinations proxy -- bypasses browser rate limits.
+    Server-side Pollinations proxy — bypasses browser rate limits.
     Calls Pollinations from Cloud Run IP, returns image as base64 PNG.
     Results cached in Redis for 1 hour to avoid duplicate generation.
     """
@@ -884,30 +817,30 @@ async def generate_image_proxy(prompt: str, style: str = "cinematic", seed: int 
         return JSONResponse({"success": False, "error": str(e)})
 
 
-# --- DEEP6 INTEL ENGINE -------------------------------------------------------
+# ─── DEEP6 INTEL ENGINE ───────────────────────────────────────────────────────
 
 @app.post("/api/health/checkin")
+@app.post("/api/pitop/checkin")
 async def pi_checkin(request: Request):
-    """Pi-top health checkin -- called every 60s by airlock_engine."""
+    """Pi-top health checkin — accepts both legacy and current endpoint."""
     data = await request.json()
-    if r:
-        r.set("aegis:pi_online", "1")
-        r.set("aegis:pi_last_checkin", datetime.utcnow().isoformat())
-        r.expire("aegis:pi_online", 120)  # Expires in 2min if no checkin
-    target = data.get("target", "")
-    kills  = data.get("kills", 0)
-    goons  = data.get("goons", 0)
+    target  = data.get("target", "")
+    kills   = data.get("kills", 0)
+    goons   = data.get("goons", 0)
+    vampire = data.get("vampire", False)
     if r:
         r.set("aegis:pi_online", "1")
         r.set("aegis:pi_last_checkin", datetime.utcnow().isoformat())
         r.expire("aegis:pi_online", 120)
-        if target: r.set("aegis:target", target)
+        if target:
+            r.set("aegis:target", target)
     await manager.broadcast({
         "type":      "pitop_online",
         "pi_online": True,
         "target":    target,
         "kills":     kills,
         "goons":     goons,
+        "vampire":   vampire,
         "timestamp": datetime.utcnow().isoformat()
     })
     return {"status": "ok"}
@@ -923,7 +856,7 @@ async def pi_health():
 
 @app.post("/api/target/set")
 async def set_target_dynamic(request: Request, user: dict = Depends(get_current_user)):
-    """Dynamic target switch -- broadcasts to Pi-top via Redis pub/sub."""
+    """Dynamic target switch — broadcasts to Pi-top via Redis pub/sub."""
     data = await request.json()
     target = data.get("target", "").strip().lstrip("@").lower()
     if not target:
@@ -945,176 +878,6 @@ async def deep6_profile(username: str, user: dict = Depends(get_current_user)):
     if not profile:
         return {"error": "no profile found", "username": u}
     return json.loads(profile)
-
-
-# -- MOLE STATION ENDPOINTS ---------------------------------------------------
-@app.post("/api/mole/deploy")
-async def mole_deploy(request: Request, user: dict = Depends(get_current_user)):
-    data = await request.json()
-    if not r: return {"error": "Redis unavailable"}
-    mission = {
-        "agent":       data.get("agent",""),
-        "target":      data.get("target",""),
-        "keywords":    data.get("keywords", ["jess","cavalry","jarmygal"]),
-        "operator":    data.get("operator", user.get("display","SYSTEM")),
-        "status":      "ACTIVE",
-        "deployed_at": datetime.utcnow().isoformat()
-    }
-    r.hset(f"mole:mission:{mission['agent']}", mapping={
-        k: json.dumps(v) if isinstance(v, list) else v for k,v in mission.items()
-    })
-    r.sadd("mole:active_missions", mission["agent"])
-    await manager.broadcast({"type":"mole_deployed","mission":mission})
-    return {"status":"deployed","mission":mission}
-
-@app.get("/api/mole/missions")
-async def mole_missions(user: dict = Depends(get_current_user)):
-    if not r: return {"missions":[]}
-    agents = r.smembers("mole:active_missions") or set()
-    missions = []
-    for a in agents:
-        m = r.hgetall(f"mole:mission:{a}")
-        if m:
-            if "keywords" in m:
-                try: m["keywords"] = json.loads(m["keywords"])
-                except: pass
-            missions.append(m)
-    return {"missions": missions, "count": len(missions)}
-
-@app.post("/api/mole/recall")
-async def mole_recall(request: Request, user: dict = Depends(get_current_user)):
-    data = await request.json()
-    agent = data.get("agent","")
-    if r:
-        r.srem("mole:active_missions", agent)
-        r.hset(f"mole:mission:{agent}", "status", "RECALLED")
-    return {"status":"recalled","agent":agent}
-
-@app.post("/api/mole/report")
-async def mole_report(request: Request):
-    """Receive intel report from MOLE agent."""
-    data = await request.json()
-    if not r: return {"error":"Redis unavailable"}
-    report = {
-        "agent":           data.get("agent",""),
-        "target_stream":   data.get("target_stream",""),
-        "trigger_keyword": data.get("trigger_keyword",""),
-        "context":         data.get("context",""),
-        "usernames":       json.dumps(data.get("usernames",[])),
-        "timestamp":       datetime.utcnow().isoformat()
-    }
-    r.lpush("mole:reports", json.dumps(report))
-    r.ltrim("mole:reports", 0, 499)
-    for u in data.get("usernames",[]):
-        r.sadd("goons", u.lower())
-    await manager.broadcast({"type":"mole_report","report":report})
-    return {"status":"received","usernames_added":len(data.get("usernames",[]))}
-
-@app.get("/api/mole/reports")
-async def mole_reports_get(agent: str = None, user: dict = Depends(get_current_user)):
-    if not r: return {"reports":[]}
-    raw = r.lrange("mole:reports", 0, 99)
-    reports = []
-    for rr in raw:
-        try:
-            rep = json.loads(rr)
-            if "usernames" in rep:
-                try: rep["usernames"] = json.loads(rep["usernames"])
-                except: pass
-            if agent and rep.get("agent") != agent:
-                continue
-            reports.append(rep)
-        except: pass
-    return {"reports":reports,"count":len(reports)}
-
-@app.post("/api/mole/pool/add")
-async def mole_pool_add(request: Request, user: dict = Depends(get_current_user)):
-    data = await request.json()
-    handle = data.get("handle","").lstrip("@").lower()
-    if r: r.sadd("mole:burner_pool", handle)
-    return {"status":"added","handle":handle}
-
-@app.get("/api/mole/pool")
-async def mole_pool(user: dict = Depends(get_current_user)):
-    if not r: return {"pool":[]}
-    pool = list(r.smembers("mole:burner_pool") or set())
-    return {"pool":pool,"count":len(pool)}
-
-# -- SPECTOR RECON ENDPOINTS ---------------------------------------------------
-@app.get("/api/spector/profile")
-async def spector_profile(username: str, user: dict = Depends(get_current_user)):
-    """Full SPECTOR intelligence profile for a username."""
-    if not r:
-        return {"error": "Redis unavailable"}
-    u = username.lstrip("@").lower()
-    in_vault   = r.sismember("goons", u)
-    in_wl      = r.sismember("whitelist", u)
-    # Confirmed burners
-    burner_keys = r.smembers(f"spector:burners:{u}") or set()
-    burners = []
-    for bk in burner_keys:
-        b = r.hgetall(f"spector:burner:{u}:{bk}")
-        if b: burners.append(b)
-    # Session history
-    sessions = []
-    raw_sessions = r.lrange(f"spector:sessions:{u}", 0, 49)
-    for s in raw_sessions:
-        try: sessions.append(json.loads(s))
-        except: pass
-    # Block history
-    blocks = []
-    raw_blocks = r.lrange(f"spector:blocks:{u}", 0, 19)
-    for b in raw_blocks:
-        try: blocks.append(json.loads(b))
-        except: pass
-    # Deep6 profile
-    d6 = r.get(f"deep6:profile:{u}")
-    deep6 = json.loads(d6) if d6 else {}
-    return {
-        "username":          u,
-        "in_vault":          in_vault,
-        "in_whitelist":      in_wl,
-        "confirmed_burners": burners,
-        "sessions":          sessions,
-        "blocks":            blocks,
-        "deep6":             deep6,
-        "threat_score":      deep6.get("threat_score", 0)
-    }
-
-@app.post("/api/spector/link_burner")
-async def spector_link_burner(request: Request, user: dict = Depends(get_current_user)):
-    """Link a burner account to a primary threat actor."""
-    data    = await request.json()
-    primary = data.get("primary","").lstrip("@").lower()
-    burner  = data.get("burner","").lstrip("@").lower()
-    operator = data.get("operator", user.get("display","SYSTEM"))
-    if not primary or not burner:
-        return {"error": "primary and burner required"}
-    if r:
-        r.sadd(f"spector:burners:{primary}", burner)
-        r.hset(f"spector:burner:{primary}:{burner}", mapping={
-            "username":  burner,
-            "linked_by": operator,
-            "linked_at": datetime.utcnow().isoformat(),
-            "reason":    data.get("reason","manual")
-        })
-        r.sadd("goons", burner)  # auto-add burner to vault
-    return {"status": "linked", "primary": primary, "burner": burner}
-
-@app.post("/api/spector/log_session")
-async def spector_log_session(request: Request):
-    """Log a session event for SPECTOR profile building."""
-    data     = await request.json()
-    username = data.get("username","").lower()
-    if not username or not r: return {"status":"ok"}
-    r.lpush(f"spector:sessions:{username}", json.dumps({
-        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
-        "event":     data.get("event","JOIN"),
-        "target":    data.get("target",""),
-        "blocked":   data.get("blocked", False)
-    }))
-    r.ltrim(f"spector:sessions:{username}", 0, 99)
-    return {"status": "logged"}
 
 @app.get("/api/deep6/timeline")
 async def deep6_timeline(limit: int = 100, user: dict = Depends(get_current_user)):
@@ -1157,7 +920,7 @@ async def deep6_evidence(username: str, user: dict = Depends(get_current_user)):
     package = {
         "case_reference": f"DEEP6-{u.upper()}-{datetime.utcnow().strftime('%Y%m%d')}",
         "generated": datetime.utcnow().isoformat(),
-        "prepared_by": "AEGIS PHANTOM Deep6 Intel Engine -- Cybergrid Solutions LLC",
+        "prepared_by": "AEGIS PHANTOM Deep6 Intel Engine — Cybergrid Solutions LLC",
         "subject": u,
         "threat_level": p.get("threat_level", "UNKNOWN"),
         "first_seen": p.get("first_seen"),
@@ -1237,7 +1000,7 @@ async def deep6_log_event(request: Request):
 
 @app.get("/api/whitelist/check/{username}")
 async def check_whitelist(username: str):
-    """Check if a username is whitelisted -- called by Pi-top before blocking."""
+    """Check if a username is whitelisted — called by Pi-top before blocking."""
     if not r:
         return {"whitelisted": False}
     u = username.lstrip("@").lower()
@@ -1256,362 +1019,13 @@ async def test_imagen():
         return {
             "success": bool(result),
             "length": len(result) if result else 0,
-            "preview": result[:100] if result else "EMPTY -- no images returned"
+            "preview": result[:100] if result else "EMPTY — no images returned"
         }
     except Exception as e:
         import traceback
         return {"success": False, "error": str(e), "type": type(e).__name__, "trace": traceback.format_exc()}
-@app.get("/api/sitrep/imagen")
-async def sitrep_imagen(prompt: str = "tactical intelligence briefing image"):
-    try:
-        from imagen_engine import generate_brief_image
-        from fastapi.responses import Response
-        import base64
-        result = generate_brief_image(prompt, prompt, "military")
-        if result:
-            raw_bytes = base64.b64decode(result)
-            return Response(content=raw_bytes, media_type="image/png")
-
-        return {"success": False, "error": "No image generated"}
-    except Exception as e:
-        import traceback
-        return {"success": False, "error": str(e), "trace": traceback.format_exc()}
-    
-
-
-@app.post("/api/vault/batch-ingest")
-async def vault_batch_ingest(request: Request, user: dict = Depends(get_current_user)):
-    """Batch ingest threat accounts into vault from dashboard."""
-    if not r:
-        raise HTTPException(status_code=503, detail="Redis unavailable")
-    data = await request.json()
-    accounts = data.get("accounts", [])
-    case_id = data.get("case_id", "MANUAL_INGEST")
-    if not accounts:
-        return JSONResponse({"error": "no accounts provided"}, status_code=400)
-    pipe = r.pipeline()
-    total = 0
-    ts = datetime.utcnow().isoformat()
-    for acct in accounts:
-        username = acct.get("username", "").strip().lstrip("@").lower()
-        if not username:
-            continue
-        mapping = {
-            "username":  username,
-            "network":   acct.get("network", "UNKNOWN"),
-            "category":  acct.get("category", "uncategorized"),
-            "tier":      acct.get("tier", "unknown"),
-            "role":      acct.get("role", "unclassified"),
-            "case":      case_id,
-            "ingested":  ts,
-            "source":    "dashboard_ingest",
-            "operator":  user.get("display", "SYSTEM"),
-        }
-        pipe.hset(f"vault:{username}", mapping=mapping)
-        pipe.sadd("vault:index", username)
-        pipe.sadd("goons", username)
-        pipe.sadd(f"vault:network:{mapping['network']}", username)
-        pipe.sadd(f"vault:category:{mapping['category']}", username)
-        pipe.sadd(f"vault:tier:{mapping['tier']}", username)
-        total += 1
-    pipe.execute()
-    print(f"[VAULT INGEST] {total} accounts by {user.get('display')} -- case {case_id}")
-    await manager.broadcast({
-        "type": "VAULT_INGEST",
-        "count": total,
-        "case": case_id,
-        "operator": user.get("display"),
-        "timestamp": ts
-    })
-    return {"status": "ok", "ingested": total}
-
-# -- SitRep Pipeline Routes -----------------------------------------------------
-from sitrep_scheduler import run_scheduled_cycle, run_breaking_check, generate_scheduled_brief, CATEGORIES
-from sitrep_video_renderer import render_video, generate_caption
-from sitrep_post_agent import dispatch_post, approve_and_post
-import asyncio, tempfile, json as _json
-
-async def process_render_queue():
-    raw = r.rpop("sitrep:render_queue")
-    if not raw:
-        return {"status": "queue_empty"}
-    brief = _json.loads(raw)
-    brief_id = brief.get("brief_id", "UNKNOWN")
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-        video_path = tmp.name
-    try:
-        success = render_video(brief, video_path)
-        if not success:
-            return {"brief_id": brief_id, "error": "render_failed"}
-        caption = generate_caption(brief)
-        return await dispatch_post(brief, video_path, caption)
-    finally:
-        try:
-            os.unlink(video_path)
-        except Exception:
-            pass
-
-@app.post("/api/sitrep/scheduled-cycle")
-async def sitrep_scheduled_cycle():
-    results = await run_scheduled_cycle()
-    asyncio.create_task(process_render_queue())
-    return {"status": "cycle_complete", "briefs": results}
-
-@app.post("/api/sitrep/breaking-check")
-async def sitrep_breaking_check():
-    result = await run_breaking_check()
-    if result.get("status") == "breaking_queued":
-        asyncio.create_task(process_render_queue())
-    return result
-
-@app.post("/api/sitrep/generate/{category}")
-async def sitrep_generate_single(category: str):
-    cat = next((c for c in CATEGORIES if c["key"] == category), None)
-    if not cat:
-        return {"error": f"Unknown category: {category}"}
-    brief = await generate_scheduled_brief(cat)
-    if not brief:
-        return {"error": "Brief generation failed"}
-    r.lpush("sitrep:render_queue", _json.dumps(brief))
-    asyncio.create_task(process_render_queue())
-    return {"status": "queued", "brief_id": brief.get("brief_id"), "headline": brief.get("headline")}
-
-@app.post("/api/sitrep/render-next")
-async def sitrep_render_next():
-    return await process_render_queue()
-
-@app.get("/api/sitrep/queue-status")
-async def sitrep_queue_status():
-    queue_depth = r.llen("sitrep:render_queue")
-    pending_keys = r.keys("sitrep:pending:*")
-    posted_keys = r.keys("sitrep:posted:*")
-    recent = []
-    for key in list(posted_keys)[-5:]:
-        raw = r.get(key)
-        if raw:
-            recent.append(_json.loads(raw))
-    return {"queue_depth": queue_depth, "pending_approval": len(pending_keys), "recent_posted": recent}
-
-@app.post("/api/sitrep/approve/{brief_id}")
-async def sitrep_approve(brief_id: str):
-    return await approve_and_post(brief_id)
-
-@app.get("/api/sitrep/pending")
-async def sitrep_pending_list():
-    keys = r.keys("sitrep:pending:*")
-    pending = []
-    for key in keys:
-        raw = r.get(key)
-        if raw:
-            data = _json.loads(raw)
-            brief = data.get("brief", {})
-            pending.append({
-                "brief_id": brief.get("brief_id"),
-                "category": brief.get("category"),
-                "headline": brief.get("headline"),
-                "video_url": data.get("video_url"),
-            })
-    return {"pending": pending}
-
-# --- RECON ENDPOINTS ----------------------------------------------------------
-
-@app.post("/api/recon/alert")
-async def recon_alert(request: Request):
-    """Receives alerts from recon bot running on Pi-top."""
-    try:
-        data = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
-    if not r:
-        raise HTTPException(status_code=503, detail="Redis unavailable")
-
-    alert = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "type": data.get("type", "UNKNOWN"),
-        "handle": data.get("handle", ""),
-        "network": data.get("network", "EE"),
-        "detail": data.get("detail", ""),
-        "rate": data.get("rate", 0),
-        "severity": data.get("severity", "LOW"),
-    }
-
-    # Store in Redis
-    r.lpush("recon:alerts", json.dumps(alert))
-    r.ltrim("recon:alerts", 0, 499)
-
-    # Update attack rate counter
-    if alert["type"] == "ACCOUNT_ACTIVATED":
-        r.incr("recon:activation_count")
-        r.expire("recon:activation_count", 3600)
-
-    # Broadcast to dashboard
-    msg = json.dumps({
-        "type": "recon_alert",
-        "alert": alert
-    })
-    for ws in list(connected_clients):
-        try:
-            await ws.send_text(msg)
-        except Exception:
-            connected_clients.discard(ws)
-
-    return {"status": "received", "alert": alert}
-
-
-@app.get("/api/recon/alerts")
-async def get_recon_alerts(user: dict = Depends(get_current_user)):
-    """Returns recent recon alerts."""
-    if not r:
-        return {"alerts": [], "count": 0, "activation_rate": 0}
-    raw = r.lrange("recon:alerts", 0, 99)
-    alerts = [json.loads(a) for a in raw]
-    rate = int(r.get("recon:activation_count") or 0)
-    return {"alerts": alerts, "count": len(alerts), "activation_rate": rate}
-
-
-@app.get("/api/recon/rate")
-async def get_attack_rate(user: dict = Depends(get_current_user)):
-    """Returns current EE network activation rate ? accounts per hour."""
-    if not r:
-        return {"rate": 0, "threat_level": "GREEN"}
-    rate = int(r.get("recon:activation_count") or 0)
-    if rate >= 50:
-        threat = "RED"
-    elif rate >= 20:
-        threat = "ORANGE"
-    elif rate >= 5:
-        threat = "YELLOW"
-    else:
-        threat = "GREEN"
-    return {"rate": rate, "threat_level": threat}
-
-
-@app.post("/api/recon/reset")
-async def reset_recon(user: dict = Depends(require_admin)):
-    """Resets the activation counter."""
-    if r:
-        r.delete("recon:activation_count")
-    return {"status": "reset"}
-
-
-@app.post("/api/comment/score")
-async def score_comment(request: Request):
-    """Receives comment from comment agent, scores threat level via Claude API."""
-    try:
-        data = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
-
-    username = data.get("username", "")
-    comment = data.get("comment", "")
-    if not username or not comment:
-        raise HTTPException(status_code=400, detail="username and comment required")
-
-    # Check vault first ? known goon = instant 10
-    if r and r.sismember("goons", username.lower()):
-        score = 10
-        label = "KNOWN_GOON"
-    else:
-        # Score via Claude API
-        if not ANTHROPIC_API_KEY:
-            score = 5
-            label = "UNSCORED"
-        else:
-            prompt = f"""You are a cybersecurity threat analyst monitoring a TikTok livestream for a US Army veteran being targeted by a coordinated harassment network.
-
-Score this comment 1-10 for threat level:
-- 1-3: Friendly/neutral ? regular viewer, supportive comment
-- 4-5: Ambiguous ? political but not targeted harassment  
-- 6-7: Suspicious ? baiting, provocative, or pattern-matched to known attack phrases
-- 8-9: Hostile ? direct harassment, stolen valor narrative, coordinated attack language
-- 10: Critical ? sexual harassment, identity impersonation, prohibited content
-
-Known attack phrases: "stolen valor", "grifter", "fake veteran", "oppressed professional", "operation other side of the wall", "we the people are sick of you"
-
-Username: @{username}
-Comment: {comment}
-
-Respond with ONLY a JSON object: {{"score": N, "label": "LABEL", "reason": "brief reason"}}"""
-
-            try:
-                async with httpx.AsyncClient(timeout=15) as client:
-                    resp = await client.post(
-                        "https://api.anthropic.com/v1/messages",
-                        json={
-                            "model": "claude-sonnet-4-20250514",
-                            "max_tokens": 100,
-                            "messages": [{"role": "user", "content": prompt}]
-                        },
-                        headers={
-                            "Content-Type": "application/json",
-                            "x-api-key": ANTHROPIC_API_KEY,
-                            "anthropic-version": "2023-06-01"
-                        }
-                    )
-                    result = resp.json()
-                    text = result["content"][0]["text"].strip()
-                    parsed = json.loads(text)
-                    score = parsed.get("score", 5)
-                    label = parsed.get("label", "UNKNOWN")
-            except Exception:
-                score = 5
-                label = "UNSCORED"
-
-    # Store if threat score >= 6
-    if score >= 6 and r:
-        threat_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "username": username,
-            "comment": comment,
-            "score": score,
-            "label": label
-        }
-        r.lpush("comment:threats", json.dumps(threat_entry))
-        r.ltrim("comment:threats", 0, 299)
-
-        # Broadcast to dashboard if score >= 6
-        msg = json.dumps({
-            "type": "comment_threat",
-            "data": threat_entry
-        })
-        for ws in list(connected_clients):
-            try:
-                await ws.send_text(msg)
-            except Exception:
-                connected_clients.discard(ws)
-
-    return {"username": username, "score": score, "label": label}
-
-
-@app.get("/api/comment/threats")
-async def get_comment_threats(user: dict = Depends(get_current_user)):
-    """Returns recent high-threat comments."""
-    if not r:
-        return {"threats": [], "count": 0}
-    raw = r.lrange("comment:threats", 0, 99)
-    threats = [json.loads(t) for t in raw]
-    return {"threats": threats, "count": len(threats)}
-
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Deploy timestamp: 2026-05-22 23:56:13
-
-# Deploy: 2026-05-23 10:29:43
-# 05/25/2026 11:38:13

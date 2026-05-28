@@ -251,6 +251,7 @@ body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(r
     <div class="tab" onclick="sw('spector')" id="tb-spector">👁 SPECTOR</div>
     <div class="tab" onclick="sw('gi')" id="tb-gi">📸 INTEL</div>
     <div class="tab" onclick="sw('ingest')" id="tb-ingest">⬆ INGEST</div>
+    <div class="tab" onclick="sw('radar')" id="tb-radar">📡 RADAR</div>
     <div class="tab" onclick="sw('admin')" id="tb-admin" style="display:none">⚙️ ADMIN</div>
   </div>
 
@@ -430,6 +431,70 @@ body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(r
     </div>
 
     <!-- ADMIN -->
+    <div id="radar" class="panel">
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px;">
+
+        <!-- JOIN RATE METER -->
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="font-family:Orbitron,monospace;font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:8px;">⚡ LIVE JOIN RATE</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
+            <div style="text-align:center;background:var(--panel);border-radius:4px;padding:8px;">
+              <div style="font-family:Orbitron,monospace;font-size:18px;color:var(--cyan);" id="rd-jpm">0</div>
+              <div style="font-size:8px;color:var(--dim);margin-top:2px;">JOINS/MIN</div>
+            </div>
+            <div style="text-align:center;background:var(--panel);border-radius:4px;padding:8px;">
+              <div style="font-family:Orbitron,monospace;font-size:18px;color:#ff6b35;" id="rd-unknown">0</div>
+              <div style="font-size:8px;color:var(--dim);margin-top:2px;">UNKNOWN</div>
+            </div>
+            <div style="text-align:center;background:var(--panel);border-radius:4px;padding:8px;">
+              <div style="font-family:Orbitron,monospace;font-size:18px;color:#ff3333;" id="rd-goons">0</div>
+              <div style="font-size:8px;color:var(--dim);margin-top:2px;">GOONS</div>
+            </div>
+            <div style="text-align:center;background:var(--panel);border-radius:4px;padding:8px;">
+              <div style="font-family:Orbitron,monospace;font-size:18px;color:#ffcc00;" id="rd-exploits">0</div>
+              <div style="font-size:8px;color:var(--dim);margin-top:2px;">EXPLOITS</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- THREAT LEVEL -->
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="font-family:Orbitron,monospace;font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:8px;">🎯 THREAT LEVEL</div>
+          <div id="rd-threat" style="font-family:Orbitron,monospace;font-size:20px;color:#00ff88;text-align:center;padding:8px;">🟢 GREEN — NOMINAL</div>
+        </div>
+
+        <!-- ATTACK RATE GRAPH -->
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="font-family:Orbitron,monospace;font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:8px;">📈 JOIN RATE GRAPH — LAST 60 SECONDS</div>
+          <canvas id="rd-chart" height="70" style="width:100%;"></canvas>
+          <div style="display:flex;justify-content:space-between;margin-top:2px;">
+            <span style="font-size:8px;color:var(--dim);">-60s</span>
+            <span style="font-size:8px;color:var(--dim);">NOW</span>
+          </div>
+        </div>
+
+        <!-- LIVE JOIN FEED -->
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-family:Orbitron,monospace;font-size:9px;color:var(--dim);letter-spacing:2px;">👤 LIVE JOIN FEED</div>
+            <button onclick="document.getElementById('rd-joinfeed').innerHTML=''" style="background:var(--panel);border:1px solid var(--border);color:var(--dim);font-family:Orbitron,monospace;font-size:7px;padding:3px 6px;cursor:pointer;border-radius:3px;">CLEAR</button>
+          </div>
+          <div id="rd-joinfeed" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;font-family:monospace;font-size:10px;">
+            <div style="color:var(--dim);text-align:center;padding:10px;">Waiting for joins...</div>
+          </div>
+        </div>
+
+        <!-- GHOST LOCK STATUS -->
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+          <div style="font-family:Orbitron,monospace;font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:8px;">👻 GHOST LOCK STATUS</div>
+          <div id="rd-ghostfeed" style="max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;font-family:monospace;font-size:10px;">
+            <div style="color:var(--dim);text-align:center;padding:10px;">Monitoring...</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <div id="admin" class="panel">
       <div class="pt">⚙️ <span>ADMIN</span></div>
       <div class="sec">
@@ -582,7 +647,181 @@ async function doLogin() {
   }
 }
 
+// ─── RADAR ENGINE ─────────────────────────────────────────────────────────────
+const radarState = {
+  joins: [],        // timestamps of joins in last 60s
+  unknowns: 0,      // non-vaulted, non-whitelisted joins
+  goonHits: 0,      // confirmed goon joins
+  exploits: 0,      // ghost lock exploits
+  jpmHistory: [],   // joins per minute history
+  maxPoints: 12,
+};
+
+function radarTrackJoin(username) {
+  const now = Date.now();
+  radarState.joins.push(now);
+  radarState.joins = radarState.joins.filter(t => now - t < 60000);
+  const jpm = radarState.joins.length;
+
+  // Always update counters regardless of tab visibility
+  const jpmEl = document.getElementById('rd-jpm');
+  if (jpmEl) jpmEl.textContent = jpm;
+
+  // Add to join feed
+  const feed = document.getElementById('rd-joinfeed');
+  if (feed) {
+    feed.innerHTML = feed.innerHTML.replace(/<div[^>]*data-empty[^>]*>.*?<\/div>/s, '');
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:2px 4px;border-radius:3px;background:rgba(255,255,255,0.05);display:flex;justify-content:space-between;margin-bottom:2px;';
+    div.innerHTML = '<span style="color:#ccc;">@' + (username||'unknown') + '</span><span style="color:#666;font-size:9px;">' + new Date().toLocaleTimeString() + '</span>';
+    feed.insertBefore(div, feed.firstChild);
+    while (feed.children.length > 60) feed.removeChild(feed.lastChild);
+  }
+
+  updateRadarDisplay(jpm);
+}
+
+function radarTrackGoon(username) {
+  radarState.goonHits++;
+  updateRadarDisplay(radarState.joins.length);
+  
+  const feed = document.getElementById('rd-joinfeed');
+  if (feed) {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:2px 4px;border-radius:3px;background:rgba(255,51,51,0.15);border-left:2px solid #ff3333;display:flex;justify-content:space-between;';
+    div.innerHTML = '<span style="color:#ff3333;">🔫 @' + username + '</span><span style="color:var(--dim);font-size:9px;">KILL</span>';
+    feed.insertBefore(div, feed.firstChild);
+  }
+}
+
+function radarTrackExploit(count) {
+  radarState.exploits = count;
+  updateRadarDisplay(radarState.joins.length);
+  
+  const feed = document.getElementById('rd-ghostfeed');
+  if (feed) {
+    const isEmpty = feed.querySelector('[data-empty]');
+    if (isEmpty) isEmpty.remove();
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:3px 6px;border-radius:3px;background:rgba(255,204,0,0.1);border-left:2px solid #ffcc00;';
+    div.innerHTML = '<span style="color:#ffcc00;">⚠️ EXPLOIT #' + count + ' DETECTED</span><span style="color:var(--dim);font-size:9px;float:right;">' + new Date().toLocaleTimeString() + '</span>';
+    feed.insertBefore(div, feed.firstChild);
+    if (feed.children.length > 20) feed.removeChild(feed.lastChild);
+  }
+}
+
+function updateRadarDisplay(jpm) {
+  // Update counters
+  const jpmEl = document.getElementById('rd-jpm');
+  const goonEl = document.getElementById('rd-goons');
+  const exploitEl = document.getElementById('rd-exploits');
+  const threatEl = document.getElementById('rd-threat');
+
+  if (jpmEl) jpmEl.textContent = jpm;
+  if (goonEl) goonEl.textContent = radarState.goonHits;
+  if (exploitEl) exploitEl.textContent = radarState.exploits;
+
+  // Threat level
+  let threat, color;
+  if (radarState.exploits >= 20 || jpm >= 30) {
+    threat = '🔴 RED — UNDER ATTACK'; color = '#ff3333';
+  } else if (radarState.exploits >= 10 || jpm >= 15) {
+    threat = '🟠 ORANGE — HIGH ACTIVITY'; color = '#ff6b35';
+  } else if (radarState.goonHits >= 3 || jpm >= 8) {
+    threat = '🟡 YELLOW — ELEVATED'; color = '#ffcc00';
+  } else {
+    threat = '🟢 GREEN — NOMINAL'; color = '#00ff88';
+  }
+  if (threatEl) { threatEl.textContent = threat; threatEl.style.color = color; }
+
+  // Update history and draw chart
+  radarState.jpmHistory.push(jpm);
+  if (radarState.jpmHistory.length > radarState.maxPoints) radarState.jpmHistory.shift();
+  drawRadarChart();
+}
+
+function drawRadarChart() {
+  const canvas = document.getElementById('rd-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth || 400;
+  const h = canvas.height;
+  canvas.width = w;
+  ctx.clearRect(0, 0, w, h);
+
+  const data = radarState.jpmHistory;
+  if (data.length < 2) return;
+  const max = Math.max(...data, 5);
+  const step = w / (radarState.maxPoints - 1);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    ctx.beginPath(); ctx.moveTo(0, (h/3)*i); ctx.lineTo(w, (h/3)*i); ctx.stroke();
+  }
+
+  // Fill
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(0,212,255,0.4)');
+  grad.addColorStop(1, 'rgba(0,212,255,0.02)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  data.forEach((v, i) => ctx.lineTo(i * step, h - (v/max)*(h-4)));
+  ctx.lineTo((data.length-1)*step, h);
+  ctx.closePath(); ctx.fill();
+
+  // Line
+  ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = i * step; const y = h - (v/max)*(h-4);
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+// Wire radar to existing kill events
+const _origAddFeed = typeof addFeed === 'function' ? addFeed : null;
+
+// Hook into WebSocket messages for kills and exploits
+function radarHookWS(d) {
+  if (d.type === 'kill') radarTrackGoon(d.username || '');
+  if (d.type === 'ghost_exploit') radarTrackExploit(d.count || 0);
+  if (d.type === 'join') radarTrackJoin(d.username || '');
+}
+
+// Auto-refresh radar chart every 5 seconds
+setInterval(() => {
+  const now = Date.now();
+  radarState.joins = radarState.joins.filter(t => now - t < 60000);
+  updateRadarDisplay(radarState.joins.length);
+}, 5000);
+
 function bootApp() {
+  // Wire radar into WebSocket after connection
+  setTimeout(() => {
+    const origConnectWS = window.connectWS;
+    if (origConnectWS) {
+      window.connectWS = function() {
+        origConnectWS.apply(this, arguments);
+        setTimeout(() => {
+          if (window._ws) {
+            const origOnMessage = window._ws.onmessage;
+            window._ws.onmessage = function(e) {
+              if (origOnMessage) origOnMessage.call(this, e);
+              try {
+                const d = JSON.parse(e.data);
+                radarHookWS(d);
+              } catch(err) {}
+            };
+          }
+        }, 2000);
+      };
+    }
+  }, 1000);
+
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('ubadge').textContent = currentUser.display;

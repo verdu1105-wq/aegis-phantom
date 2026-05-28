@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "cybergrid": {
+      "hosting": {
+        "aegis-phantom-ops": [
+          "aegis-phantom-ops"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AEGIS PHANTOM — Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500&family=Barlow+Condensed:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#04060d;--surface:#080b14;--surface2:#0c0f1a;--surface3:#111520;
+  --border:#1a1e2c;--border2:#242840;
+  --red:#c41e1e;--red2:#e02020;--cyan:#00d4ff;--green:#22c55e;
+  --amber:#f59e0b;--purple:#a855f7;--blue:#4a7fd4;
+  --text:#e0ddd8;--muted:#6a6d7a;--dim:#3a3d4a;
+  --mono:'Roboto Mono',monospace;--head:'Oswald',sans-serif;--body:'Barlow Condensed',sans-serif;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--body);height:100%;overflow:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;overflow:hidden}
+
+/* ── HEADER ── */
+header{background:var(--surface);border-bottom:2px solid var(--red);padding:.5rem .75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.logo{font-family:var(--head);font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:.08em;white-space:nowrap}
+.logo span{color:var(--red)}
+.h-badge{font-family:var(--mono);font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border:1px solid}
+.h-badge.online{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.08)}
+.h-badge.watch{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.06)}
+.h-badge.warn{border-color:var(--amber);color:var(--amber);background:rgba(245,158,11,.08);animation:blink 1.5s infinite}
+@keyframes blink{50%{opacity:.4}}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:.5rem}
+.kills-counter{font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--red)}
+.kills-lbl{font-family:var(--mono);font-size:.45rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+
+/* ── RADAR BAR ── */
+.radar-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:.4rem .75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.radar-lbl{font-family:var(--mono);font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.radar-input{background:#0a0d18;border:1px solid var(--border2);color:var(--cyan);font-family:var(--mono);font-size:.7rem;padding:4px 8px;outline:none;flex:1;min-width:120px;max-width:200px}
+.radar-input:focus{border-color:var(--cyan)}
+.rbtn{font-family:var(--mono);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.rbtn.lock{background:var(--red);color:#fff}
+.rbtn.lock:hover{background:var(--red2)}
+.rbtn.target{background:transparent;border:1px solid var(--cyan);color:var(--cyan)}
+.rbtn.target:hover{background:rgba(0,212,255,.1)}
+.radar-status{font-family:var(--mono);font-size:.55rem;color:var(--green);letter-spacing:.1em;white-space:nowrap}
+.pi-status{font-family:var(--mono);font-size:.48rem;padding:3px 8px;border:1px solid;white-space:nowrap}
+.pi-status.online{border-color:var(--green);color:var(--green)}
+.pi-status.offline{border-color:var(--red);color:var(--red);animation:blink 1s infinite}
+
+/* ── MAIN GRID ── */
+.main{display:grid;grid-template-columns:1fr 280px;overflow:hidden;height:100%}
+@media(max-width:700px){.main{grid-template-columns:1fr}}
+
+/* ── LEFT: TABS + CONTENT ── */
+.left-panel{display:grid;grid-template-rows:auto 1fr;overflow:hidden}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{font-family:var(--mono);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:.5rem .75rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(0,212,255,.04)}
+.tab-content{overflow:hidden;height:100%}
+.tab-pane{display:none;height:100%;overflow-y:auto;padding:.75rem}
+.tab-pane.active{display:block}
+
+/* ── FEED ── */
+#feed-list{display:flex;flex-direction:column;gap:2px}
+.feed-item{background:var(--surface2);border-left:3px solid var(--border);padding:.45rem .65rem;display:flex;align-items:flex-start;gap:.5rem;font-family:var(--mono);font-size:.58rem;line-height:1.4}
+.feed-item.threat{border-left-color:var(--red);background:rgba(196,30,30,.06)}
+.feed-item.goon{border-left-color:var(--amber);background:rgba(245,158,11,.05)}
+.feed-item.block{border-left-color:var(--red);background:rgba(196,30,30,.12)}
+.feed-item.friendly{border-left-color:var(--green);background:rgba(34,197,94,.05)}
+.feed-item.system{border-left-color:var(--blue);background:rgba(74,127,212,.05)}
+.feed-item.vampire{border-left-color:var(--purple);background:rgba(168,85,247,.08);animation:pulse-border 1s infinite}
+@keyframes pulse-border{50%{border-left-color:rgba(168,85,247,.3)}}
+.fi-time{color:var(--muted);flex-shrink:0;font-size:.5rem}
+.fi-icon{flex-shrink:0}
+.fi-body{flex:1;min-width:0}
+.fi-user{color:var(--cyan);font-weight:500}
+.fi-user.threat{color:var(--red)}
+.fi-user.friendly{color:var(--green)}
+.fi-comment{color:var(--text);margin-top:1px;word-break:break-word}
+.fi-tag{font-size:.45rem;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;margin-left:.35rem;vertical-align:middle}
+.fi-tag.block{background:var(--red);color:#fff}
+.fi-tag.goon{background:rgba(245,158,11,.2);color:var(--amber);border:1px solid var(--amber)}
+.fi-tag.friendly{background:rgba(34,197,94,.15);color:var(--green);border:1px solid var(--green)}
+.feed-actions{display:flex;gap:.35rem;margin-top:.35rem}
+.fa-btn{font-family:var(--mono);font-size:.45rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border:none;cursor:pointer;transition:all .15s}
+.fa-btn.block{background:var(--red);color:#fff}
+.fa-btn.vouch{background:rgba(34,197,94,.15);color:var(--green);border:1px solid var(--green)}
+.fa-btn.profile{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+
+/* ── VAULT ── */
+.vault-controls{display:flex;gap:.35rem;margin-bottom:.5rem;flex-wrap:wrap;align-items:center}
+.vault-search{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:.6rem;padding:5px 8px;outline:none;flex:1;min-width:120px}
+.vault-search:focus{border-color:var(--cyan)}
+.v-btn{font-family:var(--mono);font-size:.48rem;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.v-btn.block-all{background:var(--red);color:#fff}
+.v-btn.refresh{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.vault-count{font-family:var(--mono);font-size:.5rem;color:var(--muted)}
+#vault-list{display:flex;flex-direction:column;gap:1px}
+.gentry{background:var(--surface2);padding:.4rem .65rem;display:flex;align-items:center;gap:.5rem;border-left:2px solid var(--border)}
+.gentry.ee-confirmed{border-left-color:var(--red)}
+.gentry.gator{border-left-color:var(--purple)}
+.ge-name{font-family:var(--mono);font-size:.6rem;color:var(--cyan);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ge-tag{font-family:var(--mono);font-size:.42rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.ge-actions{display:flex;gap:3px;flex-shrink:0}
+.ge-btn{font-family:var(--mono);font-size:.45rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border:none;cursor:pointer;transition:all .15s}
+.ge-btn.block{background:var(--red);color:#fff}
+.ge-btn.vouch{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.ge-btn.remove{background:transparent;color:var(--muted);border:1px solid var(--border)}
+
+/* ── WHITELIST ── */
+.wl-row{background:var(--surface2);padding:.45rem .65rem;display:flex;align-items:center;gap:.5rem;border-left:2px solid var(--green);margin-bottom:1px}
+.wl-name{font-family:var(--mono);font-size:.6rem;color:var(--green);flex:1}
+.wl-remove{font-family:var(--mono);font-size:.45rem;padding:2px 7px;background:transparent;color:var(--muted);border:1px solid var(--border);cursor:pointer}
+
+/* ── DEEP6 ── */
+.d6-profile{background:var(--surface2);border:1px solid var(--border);padding:.75rem;margin-bottom:.5rem}
+.d6-name{font-family:var(--head);font-size:1rem;font-weight:600;color:var(--red);letter-spacing:.05em;margin-bottom:.35rem}
+.d6-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;margin-bottom:.5rem}
+.d6-stat{background:var(--bg);padding:.4rem;text-align:center}
+.d6-stat-val{font-family:var(--head);font-size:1rem;font-weight:700;color:var(--amber)}
+.d6-stat-lbl{font-family:var(--mono);font-size:.42rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.d6-comments{margin-top:.5rem}
+.d6-comment{font-family:var(--mono);font-size:.52rem;color:var(--muted);padding:.3rem .5rem;border-left:2px solid var(--red);margin-bottom:2px;line-height:1.4}
+.d6-evidence-btn{font-family:var(--mono);font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;background:var(--red);color:#fff;border:none;cursor:pointer;width:100%;margin-top:.5rem}
+
+/* ── RIGHT PANEL ── */
+.right-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+@media(max-width:700px){.right-panel{display:none}}
+
+.rp-section{padding:.65rem .75rem;border-bottom:1px solid var(--border)}
+.rp-title{font-family:var(--mono);font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan);margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.rp-title::after{content:"";flex:1;height:1px;background:var(--border)}
+
+/* ── BLOCK SECTION ── */
+.block-section{background:rgba(196,30,30,.06);border:1px solid rgba(196,30,30,.2);padding:.65rem;margin-bottom:.5rem}
+.block-warning{font-family:var(--mono);font-size:.52rem;color:var(--amber);line-height:1.6;margin-bottom:.5rem;padding:.4rem .5rem;background:rgba(245,158,11,.06);border-left:2px solid var(--amber)}
+.block-input{background:#0a0d18;border:1px solid rgba(196,30,30,.4);color:var(--text);font-family:var(--mono);font-size:.65rem;padding:6px 8px;outline:none;width:100%;margin-bottom:.4rem}
+.block-input:focus{border-color:var(--red)}
+.block-go{background:var(--red);color:#fff;border:none;font-family:var(--mono);font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;padding:7px;cursor:pointer;width:100%;transition:all .15s;font-weight:600}
+.block-go:hover{background:var(--red2)}
+.block-note{font-family:var(--mono);font-size:.48rem;color:var(--muted);line-height:1.5;margin-top:.4rem}
+
+/* ── MODE BUTTONS ── */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.5rem}
+.mode-btn{font-family:var(--mono);font-size:.48rem;letter-spacing:.1em;text-transform:uppercase;padding:6px 4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
+.mode-btn:hover{color:var(--text);border-color:var(--text)}
+.mode-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.06)}
+.mode-btn.danger.active{border-color:var(--red);color:var(--red);background:rgba(196,30,30,.08)}
+
+/* ── HOW TO USE ── */
+.howto{overflow-y:auto;flex:1}
+.howto-item{padding:.5rem .75rem;border-bottom:1px solid var(--border)}
+.howto-title{font-family:var(--mono);font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:.3rem;display:flex;align-items:center;gap:.35rem}
+.howto-body{font-size:.78rem;color:var(--muted);line-height:1.6}
+.howto-warn{font-family:var(--mono);font-size:.5rem;color:var(--amber);margin-top:.3rem;padding:.25rem .4rem;background:rgba(245,158,11,.06);border-left:2px solid var(--amber);line-height:1.5}
+.howto-tip{font-family:var(--mono);font-size:.5rem;color:var(--green);margin-top:.3rem;padding:.25rem .4rem;background:rgba(34,197,94,.05);border-left:2px solid var(--green);line-height:1.5}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar{background:var(--surface);border-top:1px solid var(--border);padding:.4rem .75rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.bb-input{background:#0a0d18;border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:.6rem;padding:5px 8px;outline:none;flex:1;min-width:120px}
+.bb-input:focus{border-color:var(--cyan)}
+.bb-btn{font-family:var(--mono);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.bb-btn.block{background:var(--red);color:#fff}
+.bb-btn.vouch{background:rgba(34,197,94,.15);color:var(--green);border:1px solid var(--green)}
+.bb-btn.add{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.bb-btn.report{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid var(--amber)}
+
+/* ── INSTRUCTIONS OVERLAY ── */
+.inst-badge{font-family:var(--mono);font-size:.45rem;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border-radius:2px}
+.inst-badge.red{background:rgba(196,30,30,.2);color:var(--red);border:1px solid rgba(196,30,30,.4)}
+.inst-badge.green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.inst-badge.amber{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.inst-badge.cyan{background:rgba(0,212,255,.08);color:var(--cyan);border:1px solid rgba(0,212,255,.3)}
+
+/* ── MISC ── */
+.empty-state{font-family:var(--mono);font-size:.55rem;color:var(--muted);text-align:center;padding:2rem;letter-spacing:.1em;text-transform:uppercase}
+.loading{font-family:var(--mono);font-size:.52rem;color:var(--muted);text-align:center;padding:1rem;letter-spacing:.08em}
+.seclbl{font-family:var(--mono);font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:.5rem 0 .25rem;padding-top:.5rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ── HEADER ── -->
+<header>
+  <div style="display:flex;align-items:center;gap:.5rem">
+    <div class="logo">AEGIS <span>PHANTOM</span></div>
+    <div class="h-badge online" id="sys-status">● ONLINE</div>
+    <div class="h-badge watch" id="mode-badge">WATCH</div>
+    <div class="h-badge warn" id="pi-badge" style="display:none">PI-TOP OFFLINE</div>
+  </div>
+  <div class="h-right">
+    <div style="text-align:right">
+      <div class="kills-counter" id="kills-counter">0</div>
+      <div class="kills-lbl">KILLS</div>
+    </div>
+    <div style="text-align:right;margin-left:.5rem">
+      <div style="font-family:var(--mono);font-size:.7rem;color:var(--purple);font-weight:500" id="vault-counter">643</div>
+      <div class="kills-lbl">VAULT</div>
+    </div>
+    <button class="rbtn target" onclick="showTab('howto')" style="margin-left:.25rem">? HELP</button>
+  </div>
+</header>
+
+<!-- ── RADAR BAR ── -->
+<div class="radar-bar">
+  <div class="radar-lbl">TARGET</div>
+  <input class="radar-input" id="target-input" placeholder="@username" value="jarmygal">
+  <button class="rbtn lock" onclick="lockTarget()">🎯 LOCK ON</button>
+  <div class="radar-status" id="radar-status">● RADAR LOCKED: @jarmygal</div>
+  <div class="pi-status online" id="pi-status" style="margin-left:auto">🔴 PI-TOP ONLINE</div>
+  <div style="font-family:var(--mono);font-size:.48rem;color:var(--muted)" id="last-checkin">Last check: —</div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('feed')" id="tab-feed">⚡ LIVE FEED</div>
+      <div class="tab" onclick="showTab('vault')" id="tab-vault">💀 VAULT <span id="vault-tab-count" style="color:var(--red)">(643)</span></div>
+      <div class="tab" onclick="showTab('whitelist')" id="tab-whitelist">✅ WHITELIST</div>
+      <div class="tab" onclick="showTab('deep6')" id="tab-deep6">🔍 DEEP6 INTEL</div>
+      <div class="tab" onclick="showTab('howto')" id="tab-howto">📖 HOW TO USE</div>
+    </div>
+
+    <div class="tab-content">
+
+      <!-- LIVE FEED -->
+      <div class="tab-pane active" id="pane-feed">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+          <div style="font-family:var(--mono);font-size:.5rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">● LIVE STREAM FEED</div>
+          <button onclick="document.getElementById('feed-list').innerHTML=''" style="font-family:var(--mono);font-size:.45rem;padding:2px 8px;background:transparent;color:var(--muted);border:1px solid var(--border);cursor:pointer">CLEAR</button>
+        </div>
+        <div id="feed-list">
+          <div class="feed-item system"><div class="fi-time">--:--:--</div><div class="fi-icon">🛡️</div><div class="fi-body">AEGIS PHANTOM online — waiting for stream</div></div>
+        </div>
+      </div>
+
+      <!-- VAULT -->
+      <div class="tab-pane" id="pane-vault">
+        <div class="vault-controls">
+          <input class="vault-search" id="vault-search" placeholder="Search accounts..." oninput="filterVault()">
+          <button class="v-btn block-all" onclick="blockAllVisible()">🚫 BLOCK ALL</button>
+          <button class="v-btn refresh" onclick="loadVault()">↻ REFRESH</button>
+          <div class="vault-count" id="vault-count">Loading...</div>
+        </div>
+
+        <!-- EE TACTICAL GROUP — ALWAYS VISIBLE -->
+        <div style="background:rgba(196,30,30,.08);border:1px solid rgba(196,30,30,.3);padding:.5rem .65rem;margin-bottom:.5rem">
+          <div style="font-family:var(--mono);font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;color:var(--red);margin-bottom:.35rem">⚠ EE TACTICAL GROUP — AUTO-BLOCK ON JOIN</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.25rem" id="ee-group">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <div id="vault-list"><div class="loading">Loading vault...</div></div>
+      </div>
+
+      <!-- WHITELIST -->
+      <div class="tab-pane" id="pane-whitelist">
+        <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);padding:.65rem;margin-bottom:.75rem">
+          <div style="font-family:var(--mono);font-size:.52rem;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem">✅ WHITELIST — Friendlies Never Blocked</div>
+          <div style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:.5rem">Accounts on this list will NEVER be blocked by AEGIS — even if they appear in the vault or trigger pattern detection. Add your regulars, moderators, and known friendlies here.</div>
+          <div style="display:flex;gap:.35rem">
+            <input id="wl-input" placeholder="@username to whitelist" style="background:#0a0d18;border:1px solid rgba(34,197,94,.3);color:var(--text);font-family:var(--mono);font-size:.6rem;padding:5px 8px;outline:none;flex:1">
+            <button onclick="addWhitelist()" style="background:var(--green);color:#000;border:none;font-family:var(--mono);font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;cursor:pointer">ADD</button>
+          </div>
+        </div>
+
+        <!-- Default friendlies always shown -->
+        <div style="font-family:var(--mono);font-size:.5rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem">Active Whitelist</div>
+        <div id="whitelist-items">
+          <div class="wl-row"><div class="wl-name">@jarmygal <span style="color:var(--muted);font-size:.45rem">— Protected Asset</span></div><span style="font-family:var(--mono);font-size:.42rem;color:var(--muted)">PERMANENT</span></div>
+          <div class="wl-row"><div class="wl-name">@essayons123 <span style="color:var(--muted);font-size:.45rem">— Primary Account</span></div><span style="font-family:var(--mono);font-size:.42rem;color:var(--muted)">PERMANENT</span></div>
+          <div class="wl-row"><div class="wl-name">@d4rkn8t <span style="color:var(--muted);font-size:.45rem">— Mod Operator</span></div><span style="font-family:var(--mono);font-size:.42rem;color:var(--muted)">PERMANENT</span></div>
+          <div class="wl-row"><div class="wl-name">@mistalina <span style="color:var(--muted);font-size:.45rem">— Mod Operator</span></div><span style="font-family:var(--mono);font-size:.42rem;color:var(--muted)">PERMANENT</span></div>
+        </div>
+        <div id="wl-dynamic"></div>
+      </div>
+
+      <!-- DEEP6 INTEL -->
+      <div class="tab-pane" id="pane-deep6">
+        <div style="background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);padding:.65rem;margin-bottom:.75rem">
+          <div style="font-family:var(--mono);font-size:.52rem;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.25rem">🔍 DEEP6 INTEL ENGINE</div>
+          <div style="font-size:.8rem;color:var(--muted);line-height:1.6">Every join and comment is logged. Threat profiles build automatically. Pull any username to see their full activity history and generate an evidence package.</div>
+        </div>
+        <div style="display:flex;gap:.35rem;margin-bottom:.75rem">
+          <input id="d6-search" placeholder="@username to investigate..." style="background:#0a0d18;border:1px solid rgba(168,85,247,.3);color:var(--text);font-family:var(--mono);font-size:.6rem;padding:5px 8px;outline:none;flex:1">
+          <button onclick="loadDeep6Profile()" style="background:var(--purple);color:#fff;border:none;font-family:var(--mono);font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;cursor:pointer">PULL PROFILE</button>
+        </div>
+        <div id="d6-results">
+          <div class="empty-state">Enter a username to pull their Deep6 intel profile</div>
+        </div>
+        <div style="margin-top:.75rem">
+          <div style="font-family:var(--mono);font-size:.5rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem">Active Threat Profiles</div>
+          <div id="d6-threats"><div class="loading">Loading threat profiles...</div></div>
+        </div>
+      </div>
+
+      <!-- HOW TO USE -->
+      <div class="tab-pane" id="pane-howto">
+        <div class="howto">
+
+          <div class="howto-item">
+            <div class="howto-title">🎯 Setting Your Radar Target</div>
+            <div class="howto-body">Type the TikTok username in the TARGET box at the top (no @ needed). Hit <strong>LOCK ON</strong>. The radar will switch to that account. Use this every time Jess switches between @jarmygal and @essayons123.</div>
+            <div class="howto-tip">💡 TIP: Set target BEFORE she goes live so AEGIS is already watching when stream starts.</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">🚫 BLOCK Button — When to Use It <span class="inst-badge red">READ THIS</span></div>
+            <div class="howto-body">The BLOCK button at the bottom of the screen (or on each vault entry) executes a TikTok block from Jess's account. Type the @username and hit GO — or tap BLOCK next to any vault entry for one-tap blocking.</div>
+            <div class="howto-warn">⚠ WARNING: Blocks execute through Jess's TikTok session. If the session expires, blocks will FAIL silently. Watch for "BLOCK FAILED" in the live feed — if you see this, the session needs to be refreshed. Do NOT spam the block button — TikTok may flag rapid sequential blocks as bot behavior.</div>
+            <div class="howto-tip">✅ BEST PRACTICE: Block during active VAMPIRE waves. For casual goons who join and lurk, use WATCH mode and only block if they comment.</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">👁 WATCH Mode vs 🚫 BLOCK Mode</div>
+            <div class="howto-body"><strong>WATCH</strong> — Default. AEGIS monitors and alerts but does not auto-block. Use this during normal streams.<br><br><strong>BLOCK</strong> — Auto-blocks vault accounts the moment they join. Use during active attacks.<br><br><strong>LOCKDOWN</strong> — Maximum defense. Blocks all non-whitelisted accounts aggressively.<br><br><strong>STEALTH</strong> — Silent monitoring only. No blocks, no alerts visible to stream viewers.</div>
+            <div class="howto-warn">⚠ BLOCK and LOCKDOWN modes should only be activated during confirmed EE group attacks. Leaving LOCKDOWN on during normal streams risks blocking real audience members.</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">✅ Whitelist — Protecting Friendlies</div>
+            <div class="howto-body">Go to the WHITELIST tab and add any regular viewer or friendly account. Whitelisted accounts will NEVER be blocked by AEGIS — even if their name appears in the vault or they trigger a pattern flag.</div>
+            <div class="howto-tip">💡 TIP: If someone like @doglover gets caught in a block wave, add them to the whitelist immediately to prevent future false positives.</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">🔍 Deep6 Intel — Building Evidence</div>
+            <div class="howto-body">Every join and comment from every user is logged automatically. Go to the DEEP6 INTEL tab, type any username, and hit PULL PROFILE. You'll see their full activity history — every stream they joined, every comment they made, how many times they've been blocked. Hit GENERATE EVIDENCE PACKAGE to export a formal evidence document for TikTok Trust & Safety.</div>
+            <div class="howto-tip">💡 TIP: Pull profiles on EE accounts after every stream to build the pattern timeline. The more data Deep6 collects, the stronger the evidence package.</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">💀 Vault — Your Threat Database</div>
+            <div class="howto-body">The vault contains 643 confirmed threat accounts stored in Redis Cloud. It persists forever — survives restarts, accessible from any device. Use the search box to find specific accounts. The EE Tactical Group at the top is the high-priority list — these auto-block on join when BLOCK mode is active.</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">🔴 Pi-Top Status Indicator</div>
+            <div class="howto-body">The Pi-Top status in the top bar shows whether your local TikTok listener is online. If it shows OFFLINE, the stream monitor is not running — AEGIS cannot detect joins or comments until Pi-Top reconnects.</div>
+            <div class="howto-warn">⚠ If Pi-Top goes offline during a stream: SSH to pi@192.168.4.59 and run: TIKTOK_TARGET=jarmygal python3 airlock_engine.py</div>
+          </div>
+
+          <div class="howto-item">
+            <div class="howto-title">📱 Distributed Block Network</div>
+            <div class="howto-body">Vern, Jess, and D4RKN8T can all execute blocks from their own devices. This spreads the block requests across different IPs so TikTok doesn't flag it as automated behavior. Coordinate: Vern blocks odd-numbered vault entries, D4RKN8T blocks even-numbered, Jess handles the EE confirmed list.</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <div class="rp-section">
+      <div class="rp-title">CWIS MODE</div>
+      <div class="mode-grid">
+        <button class="mode-btn active" id="mode-watch" onclick="setMode('WATCH',this)">👁 WATCH</button>
+        <button class="mode-btn danger" id="mode-block" onclick="setMode('BLOCK',this)">🚫 BLOCK</button>
+        <button class="mode-btn danger" id="mode-lockdown" onclick="setMode('LOCKDOWN',this)">🔒 LOCKDOWN</button>
+        <button class="mode-btn" id="mode-stealth" onclick="setMode('STEALTH',this)">👻 STEALTH</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:.48rem;color:var(--muted);line-height:1.5;padding:.35rem .4rem;background:var(--bg);border:1px solid var(--border)" id="mode-desc">
+        WATCH: Monitor and alert. No auto-blocks. Safe for normal streams.
+      </div>
+    </div>
+
+    <div class="rp-section">
+      <div class="rp-title">BLOCK OPERATOR</div>
+      <div class="block-section">
+        <div class="block-warning">⚠ Blocks run through Jess's session. Session expiry = silent fail. Watch feed for BLOCK FAILED alerts.</div>
+        <input class="block-input" id="block-input" placeholder="@username to block" onkeydown="if(event.key==='Enter')executeBlock()">
+        <button class="block-go" onclick="executeBlock()">🚫 EXECUTE BLOCK</button>
+        <div class="block-note">Use during confirmed EE attacks only. Avoid rapid sequential blocks — TikTok flags bot behavior.</div>
+      </div>
+    </div>
+
+    <div class="rp-section">
+      <div class="rp-title">QUICK STATS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem">
+        <div style="background:var(--bg);padding:.45rem;text-align:center">
+          <div style="font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--red)" id="stat-blocked">0</div>
+          <div style="font-family:var(--mono);font-size:.42rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Blocked</div>
+        </div>
+        <div style="background:var(--bg);padding:.45rem;text-align:center">
+          <div style="font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--amber)" id="stat-joins">0</div>
+          <div style="font-family:var(--mono);font-size:.42rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Joins</div>
+        </div>
+        <div style="background:var(--bg);padding:.45rem;text-align:center">
+          <div style="font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--purple)" id="stat-goons">0</div>
+          <div style="font-family:var(--mono);font-size:.42rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Goons</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rp-section" style="flex:1;overflow-y:auto">
+      <div class="rp-title">TEAM STATUS</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem .5rem;background:var(--bg)">
+          <div style="font-family:var(--mono);font-size:.55rem;color:var(--text)">VERN</div>
+          <div style="font-family:var(--mono);font-size:.45rem;color:var(--green)">● GLOBAL ADMIN</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem .5rem;background:var(--bg)">
+          <div style="font-family:var(--mono);font-size:.55rem;color:var(--text)">JESS</div>
+          <div style="font-family:var(--mono);font-size:.45rem;color:var(--amber)">● OPERATOR</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem .5rem;background:var(--bg)">
+          <div style="font-family:var(--mono);font-size:.55rem;color:var(--text)">D4RKN8T</div>
+          <div style="font-family:var(--mono);font-size:.45rem;color:var(--muted)">○ PENDING LOGIN</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem .5rem;background:var(--bg)">
+          <div style="font-family:var(--mono);font-size:.55rem;color:var(--text)">MISTALINA</div>
+          <div style="font-family:var(--mono);font-size:.45rem;color:var(--muted)">○ PENDING LOGIN</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── BOTTOM BAR ── -->
+<div class="bottom-bar">
+  <div style="font-family:var(--mono);font-size:.48rem;color:var(--muted);white-space:nowrap">QUICK ACTION:</div>
+  <input class="bb-input" id="bb-username" placeholder="@username" onkeydown="if(event.key==='Enter')bbBlock()">
+  <button class="bb-btn block" onclick="bbBlock()">🚫 BLOCK</button>
+  <button class="bb-btn vouch" onclick="bbVouch()">✅ VOUCH</button>
+  <button class="bb-btn add" onclick="bbAdd()">+ VAULT</button>
+  <button class="bb-btn report" onclick="bbReport()">🚨 REPORT</button>
+</div>
+
+</div>
+
+<script>
+const API = 'https://aegis-cwis-974184310088.us-east1.run.app';
+var jwt = localStorage.getItem('aegis_jwt') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2ZXJuIiwicm9sZSI6IkdMT0JBTF9BRE1JTiIsImRpc3BsYXkiOiJWRVJOIiwiZXhwIjoxNzc3MzY2ODA5LCJpYXQiOjE3NzczMzgwMDl9.BhOljB5odS5ZvJl5PW5zdHI9LjXbAdwHiRXopCIHzX4';
+var kills = 0;
+var joinCount = 0;
+var goonCount = 0;
+var currentMode = 'WATCH';
+var ws = null;
+var whitelist = JSON.parse(localStorage.getItem('aegis_whitelist') || '["jarmygal","essayons123","d4rkn8t","mistalina"]');
+
+const EE_GROUP = [
+  'ee2.0','0.2ee','reeree','reeree5616','snowwhitee23','snowwhitee23__',
+  'charliee_092','reneeregina','jessessprout','usmcvet2012','tankerb29',
+  'iceman8386','respectfullyno123','angel_stitch23'
+];
+
+const MODE_DESC = {
+  WATCH: 'WATCH: Monitor and alert. No auto-blocks. Safe for normal streams.',
+  BLOCK: 'BLOCK: Auto-blocks vault accounts on join. Use during active attacks.',
+  LOCKDOWN: 'LOCKDOWN: Maximum defense. Blocks all non-whitelisted aggressively.',
+  STEALTH: 'STEALTH: Silent monitoring only. No visible alerts.'
+};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.onload = function() {
+  // Auto-authenticate with default credentials
+  if (!jwt) {
+    fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username:'vern', password:'aegis2026vern'})
+    }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.token) {
+        jwt = d.token;
+        localStorage.setItem('aegis_jwt', jwt);
+      }
+      initApp();
+    }).catch(function(){ initApp(); });
+  } else {
+    initApp();
+  }
+};
+
+function initApp() {
+  // Store JWT in localStorage for persistence
+  if (jwt) localStorage.setItem('aegis_jwt', jwt);
+  renderEEGroup();
+  loadVault();
+  connectWS();
+  loadD6Threats();
+  renderWhitelist();
+  checkPiStatus();
+  setInterval(checkPiStatus, 60000);
+}
+
+// ── EE GROUP ─────────────────────────────────────────────────────────────────
+function renderEEGroup() {
+  var el = document.getElementById('ee-group');
+  el.innerHTML = EE_GROUP.map(function(u) {
+    return '<span style="font-family:var(--mono);font-size:.5rem;background:rgba(196,30,30,.15);color:var(--red);border:1px solid rgba(196,30,30,.3);padding:2px 7px;cursor:pointer" onclick="quickBlock(\''+u+'\')">@'+u+'</span>';
+  }).join('');
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────────────────────────
+function connectWS() {
+  try {
+    var token = jwt || 'aegis2026secure';
+    var wsUrl = API.replace('https://','wss://').replace('http://','ws://') + '/ws/dashboard?token=' + token;
+    ws = new WebSocket(wsUrl);
+    ws.onopen = function() { addFeed('system','🛡️','AEGIS','Connected to cloud — monitoring active',''); };
+    ws.onmessage = function(e) {
+      try { handleWS(JSON.parse(e.data)); } catch(err) {}
+    };
+    ws.onclose = function() {
+      addFeed('system','⚠️','SYSTEM','WebSocket disconnected — reconnecting in 5s','');
+      setTimeout(connectWS, 5000);
+    };
+    ws.onerror = function() { ws.close(); };
+  } catch(e) {}
+}
+
+function handleWS(data) {
+  var type = data.type || '';
+  if (type === 'join') {
+    var d = data.data || data;
+    var u = d.username || '';
+    var isGoon = d.is_threat || d.is_goon || false;
+    var isFriendly = whitelist.indexOf(u.toLowerCase()) > -1;
+    joinCount++;
+    document.getElementById('stat-joins').textContent = joinCount;
+    if (isGoon) { goonCount++; document.getElementById('stat-goons').textContent = goonCount; }
+    addFeed(
+      isFriendly ? 'friendly' : (isGoon ? 'goon' : ''),
+      isFriendly ? '✅' : (isGoon ? '🚨' : '👤'),
+      u, 'joined the stream',
+      isGoon ? 'goon' : (isFriendly ? 'friendly' : ''),
+      u, isGoon
+    );
+  } else if (type === 'comment') {
+    var u = data.username || '';
+    var c = data.comment || '';
+    var isGoon = data.is_goon || false;
+    var isHostile = data.hostile || false;
+    var isFriendly = whitelist.indexOf(u.toLowerCase()) > -1;
+    addFeedComment(u, c, isGoon, isHostile, isFriendly);
+  } else if (type === 'intel' || type === 'vampire') {
+    addFeed('vampire','🔴','VAMPIRE ALERT', data.message || 'VAMPIRE wave detected','');
+  } else if (type === 'block_executed') {
+    kills++;
+    document.getElementById('kills-counter').textContent = kills;
+    document.getElementById('stat-blocked').textContent = kills;
+    addFeed('block','🚫','BLOCK','@'+(data.username||'')+ ' — EXECUTED','');
+  } else if (type === 'block_failed') {
+    addFeed('threat','❌','BLOCK FAILED','@'+(data.username||'')+' — session may be expired','');
+  } else if (type === 'radar_locked') {
+    document.getElementById('radar-status').textContent = '● RADAR LOCKED: @' + (data.data?.target || '');
+  } else if (type === 'health') {
+    updatePiStatus(true, data.timestamp);
+  }
+}
+
+// ── FEED ──────────────────────────────────────────────────────────────────────
+function addFeed(cls, icon, user, msg, tag, username, isGoon) {
+  var list = document.getElementById('feed-list');
+  var now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  var tagHtml = tag ? '<span class="fi-tag '+tag+'">'+tag.toUpperCase()+'</span>' : '';
+  var actionsHtml = (username && isGoon) ? '<div class="feed-actions"><button class="fa-btn block" onclick="quickBlock(\''+username+'\')">BLOCK</button><button class="fa-btn vouch" onclick="addToWhitelist(\''+username+'\')">VOUCH</button><button class="fa-btn profile" onclick="d6pull(\''+username+'\')">PROFILE</button></div>' : '';
+  var item = '<div class="feed-item '+cls+'"><div class="fi-time">'+now+'</div><div class="fi-icon">'+icon+'</div><div class="fi-body"><span class="fi-user '+(isGoon?'threat':cls==='friendly'?'friendly':'')+'">@'+user+'</span> '+tagHtml+' <span class="fi-comment">'+esc(msg)+'</span>'+actionsHtml+'</div></div>';
+  list.insertAdjacentHTML('afterbegin', item);
+  // Trim feed to 200 items
+  while(list.children.length > 200) list.removeChild(list.lastChild);
+}
+
+function addFeedComment(user, comment, isGoon, isHostile, isFriendly) {
+  var list = document.getElementById('feed-list');
+  var now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  var cls = isFriendly ? 'friendly' : (isGoon || isHostile ? 'threat' : '');
+  var icon = isFriendly ? '✅' : (isGoon ? '🚨' : (isHostile ? '⚠️' : '📡'));
+  var actionsHtml = (isGoon || isHostile) ? '<div class="feed-actions"><button class="fa-btn block" onclick="quickBlock(\''+user+'\')">BLOCK</button><button class="fa-btn profile" onclick="d6pull(\''+user+'\')">PROFILE</button></div>' : '';
+  var item = '<div class="feed-item '+cls+'"><div class="fi-time">'+now+'</div><div class="fi-icon">'+icon+'</div><div class="fi-body"><span class="fi-user '+(isGoon||isHostile?'threat':isFriendly?'friendly':'')+'">@'+user+'</span> <span class="fi-comment">'+esc(comment)+'</span>'+actionsHtml+'</div></div>';
+  list.insertAdjacentHTML('afterbegin', item);
+  while(list.children.length > 200) list.removeChild(list.lastChild);
+}
+
+// ── VAULT ─────────────────────────────────────────────────────────────────────
+var goons = [];
+function loadVault() {
+  authFetch('/api/goons').then(function(data) {
+    goons = data.goons || data || [];
+    document.getElementById('vault-tab-count').textContent = '('+goons.length+')';
+    document.getElementById('vault-counter').textContent = goons.length;
+    document.getElementById('vault-count').textContent = goons.length + ' accounts';
+    renderVault();
+  }).catch(function() {
+    document.getElementById('vault-list').innerHTML = '<div class="empty-state">Could not load vault</div>';
+  });
+}
+
+function renderVault() {
+  var search = (document.getElementById('vault-search').value || '').toLowerCase();
+  var filtered = goons.filter(function(g){ return !search || g.toLowerCase().includes(search); });
+  var html = filtered.slice(0, 200).map(function(g) {
+    var isEE = EE_GROUP.indexOf(g.toLowerCase()) > -1;
+    var cls = isEE ? 'ee-confirmed' : '';
+    return '<div class="gentry '+cls+'">'+
+      '<div class="ge-name">@'+esc(g)+'</div>'+
+      (isEE ? '<div class="ge-tag" style="color:var(--red)">EE</div>' : '<div class="ge-tag">HOSTILE</div>')+
+      '<div class="ge-actions">'+
+      '<button class="ge-btn block" onclick="quickBlock(\''+esc(g)+'\')">BLOCK</button>'+
+      '<button class="ge-btn vouch" onclick="addToWhitelist(\''+esc(g)+'\')">VOUCH</button>'+
+      '<button class="ge-btn remove" onclick="removeFromVault(\''+esc(g)+'\')">✕</button>'+
+      '</div></div>';
+  }).join('');
+  document.getElementById('vault-list').innerHTML = html || '<div class="empty-state">No accounts found</div>';
+}
+
+function filterVault() { renderVault(); }
+
+async function quickBlock(username) {
+  var u = username.replace('@','').toLowerCase();
+  if (whitelist.indexOf(u) > -1) {
+    addFeed('friendly','✅','WHITELIST','@'+u+' is whitelisted — block skipped','');
+    return;
+  }
+  try {
+    await authFetch('/api/block', 'POST', {username: u, reason: 'manual_block'});
+    kills++;
+    document.getElementById('kills-counter').textContent = kills;
+    document.getElementById('stat-blocked').textContent = kills;
+    addFeed('block','🚫','BLOCKED','@'+u,'block');
+  } catch(e) {
+    addFeed('threat','❌','BLOCK FAILED','@'+u+' — check session','');
+  }
+}
+
+async function removeFromVault(username) {
+  goons = goons.filter(function(g){ return g !== username; });
+  renderVault();
+}
+
+async function blockAllVisible() {
+  var search = (document.getElementById('vault-search').value || '').toLowerCase();
+  var filtered = goons.filter(function(g){ return !search || g.toLowerCase().includes(search); });
+  if (filtered.length > 10 && !confirm('Block '+filtered.length+' accounts?')) return;
+  for (var i = 0; i < filtered.length; i++) {
+    await quickBlock(filtered[i]);
+    await sleep(300);
+  }
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+// ── WHITELIST ─────────────────────────────────────────────────────────────────
+function addWhitelist() {
+  var u = document.getElementById('wl-input').value.replace('@','').toLowerCase().trim();
+  if (!u) return;
+  if (whitelist.indexOf(u) === -1) {
+    whitelist.push(u);
+    localStorage.setItem('aegis_whitelist', JSON.stringify(whitelist));
+    renderWhitelist();
+    addFeed('friendly','✅','WHITELIST','@'+u+' added — will never be blocked','');
+  }
+  document.getElementById('wl-input').value = '';
+}
+
+function addToWhitelist(username) {
+  var u = username.replace('@','').toLowerCase();
+  if (whitelist.indexOf(u) === -1) {
+    whitelist.push(u);
+    localStorage.setItem('aegis_whitelist', JSON.stringify(whitelist));
+    renderWhitelist();
+    addFeed('friendly','✅','WHITELIST','@'+u+' added','');
+  }
+}
+
+function removeFromWhitelist(username) {
+  var permanent = ['jarmygal','essayons123','d4rkn8t','mistalina'];
+  if (permanent.indexOf(username) > -1) { alert('Cannot remove permanent whitelist entries.'); return; }
+  whitelist = whitelist.filter(function(u){ return u !== username; });
+  localStorage.setItem('aegis_whitelist', JSON.stringify(whitelist));
+  renderWhitelist();
+}
+
+function renderWhitelist() {
+  var dynamic = whitelist.filter(function(u){ return ['jarmygal','essayons123','d4rkn8t','mistalina'].indexOf(u) === -1; });
+  document.getElementById('wl-dynamic').innerHTML = dynamic.map(function(u){
+    return '<div class="wl-row"><div class="wl-name">@'+esc(u)+'</div><button class="wl-remove" onclick="removeFromWhitelist(\''+esc(u)+'\')">✕ Remove</button></div>';
+  }).join('') || '<div style="font-family:var(--mono);font-size:.52rem;color:var(--muted);padding:.5rem 0">No additional accounts whitelisted.</div>';
+}
+
+// ── DEEP6 INTEL ───────────────────────────────────────────────────────────────
+function d6pull(username) {
+  document.getElementById('d6-search').value = username;
+  showTab('deep6');
+  loadDeep6Profile();
+}
+
+async function loadDeep6Profile() {
+  var u = document.getElementById('d6-search').value.replace('@','').toLowerCase().trim();
+  if (!u) return;
+  document.getElementById('d6-results').innerHTML = '<div class="loading">Pulling Deep6 profile for @'+u+'...</div>';
+  try {
+    var data = await authFetch('/api/deep6/profile/'+u);
+    if (data.error) {
+      document.getElementById('d6-results').innerHTML = '<div class="empty-state">No profile found for @'+u+' — they may not have appeared in a monitored stream yet.</div>';
+      return;
+    }
+    var html = '<div class="d6-profile">'+
+      '<div class="d6-name">@'+esc(u)+'<span style="font-family:var(--mono);font-size:.52rem;color:var(--muted);margin-left:.5rem">'+data.threat_level+'</span></div>'+
+      '<div class="d6-stats">'+
+        '<div class="d6-stat"><div class="d6-stat-val">'+data.join_count+'</div><div class="d6-stat-lbl">Joins</div></div>'+
+        '<div class="d6-stat"><div class="d6-stat-val">'+data.comment_count+'</div><div class="d6-stat-lbl">Comments</div></div>'+
+        '<div class="d6-stat"><div class="d6-stat-val">'+data.block_count+'</div><div class="d6-stat-lbl">Blocked</div></div>'+
+      '</div>'+
+      '<div style="font-family:var(--mono);font-size:.5rem;color:var(--muted);margin-bottom:.35rem">First seen: '+data.first_seen+' · Last seen: '+data.last_seen+'</div>'+
+      '<div style="font-family:var(--mono);font-size:.5rem;color:var(--muted);margin-bottom:.5rem">Streams targeted: '+(data.streams||[]).join(', ')+'</div>';
+
+    if (data.comments && data.comments.length > 0) {
+      html += '<div class="d6-comments"><div style="font-family:var(--mono);font-size:.48rem;color:var(--red);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">Captured Comments</div>';
+      data.comments.slice(-10).forEach(function(c) {
+        html += '<div class="d6-comment">'+esc(c.text||c)+'<span style="color:var(--muted);margin-left:.5rem;font-size:.45rem">'+((c.timestamp||'').slice(0,16))+'</span></div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<button class="d6-evidence-btn" onclick="generateEvidence(\''+esc(u)+'\')">🔍 GENERATE EVIDENCE PACKAGE</button></div>';
+    document.getElementById('d6-results').innerHTML = html;
+  } catch(e) {
+    document.getElementById('d6-results').innerHTML = '<div class="empty-state">Error loading profile</div>';
+  }
+}
+
+async function generateEvidence(username) {
+  try {
+    var data = await authFetch('/api/deep6/evidence/'+username, 'POST');
+    var w = window.open('', '_blank');
+    w.document.write('<pre style="background:#04060d;color:#e0ddd8;font-family:Roboto Mono,monospace;font-size:12px;padding:2rem;white-space:pre-wrap">'+JSON.stringify(data,null,2)+'</pre>');
+    w.document.title = 'Deep6 Evidence — @'+username;
+  } catch(e) { alert('Evidence generation failed'); }
+}
+
+async function loadD6Threats() {
+  try {
+    var data = await authFetch('/api/deep6/threats');
+    var threats = data.threats || [];
+    if (!threats.length) {
+      document.getElementById('d6-threats').innerHTML = '<div class="empty-state">No threat profiles yet — profiles build as streams are monitored</div>';
+      return;
+    }
+    document.getElementById('d6-threats').innerHTML = threats.slice(0,10).map(function(p) {
+      return '<div style="background:var(--surface2);border-left:2px solid var(--red);padding:.45rem .65rem;margin-bottom:2px;display:flex;align-items:center;gap:.5rem;cursor:pointer" onclick="d6pull(\''+esc(p.username)+'\')">'+
+        '<div style="flex:1;min-width:0"><div style="font-family:var(--mono);font-size:.58rem;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@'+esc(p.username)+'</div>'+
+        '<div style="font-family:var(--mono);font-size:.45rem;color:var(--muted)">'+p.join_count+' joins · '+p.comment_count+' comments · '+p.block_count+' blocks</div></div>'+
+        '<div style="font-family:var(--mono);font-size:.45rem;color:var(--red);text-transform:uppercase;border:1px solid rgba(196,30,30,.3);padding:1px 5px">'+p.threat_level+'</div></div>';
+    }).join('');
+  } catch(e) {}
+}
+
+// ── TARGET ────────────────────────────────────────────────────────────────────
+async function lockTarget() {
+  var t = document.getElementById('target-input').value.replace('@','').toLowerCase().trim();
+  if (!t) return;
+  try {
+    await authFetch('/api/target/set', 'POST', {target: t});
+    document.getElementById('radar-status').textContent = '● RADAR LOCKED: @'+t;
+    addFeed('system','🎯','TARGET','Radar switched to @'+t,'');
+  } catch(e) {
+    // Fallback — try old endpoint
+    try { await authFetch('/api/target', 'POST', {target: t}); } catch(e2) {}
+    document.getElementById('radar-status').textContent = '● TARGET SET: @'+t;
+  }
+}
+
+// ── MODE ──────────────────────────────────────────────────────────────────────
+async function setMode(mode, el) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(function(b){ b.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  document.getElementById('mode-badge').textContent = mode;
+  document.getElementById('mode-desc').textContent = MODE_DESC[mode] || '';
+  try { await authFetch('/api/mode', 'POST', {mode: mode}); } catch(e) {}
+  addFeed('system','⚡','MODE','Switched to '+mode,'');
+}
+
+// ── PI-TOP HEALTH ─────────────────────────────────────────────────────────────
+async function checkPiStatus() {
+  try {
+    var data = await authFetch('/health');
+    var piOnline = data.pi_online || data.status === 'ok';
+    updatePiStatus(piOnline, data.timestamp);
+  } catch(e) {
+    updatePiStatus(false, null);
+  }
+}
+
+function updatePiStatus(online, ts) {
+  var el = document.getElementById('pi-status');
+  var badge = document.getElementById('pi-badge');
+  if (online) {
+    el.textContent = '🔴 PI-TOP ONLINE';
+    el.className = 'pi-status online';
+    badge.style.display = 'none';
+  } else {
+    el.textContent = '⚠ PI-TOP OFFLINE';
+    el.className = 'pi-status offline';
+    badge.style.display = 'flex';
+  }
+  if (ts) document.getElementById('last-checkin').textContent = 'Last check: '+new Date(ts).toLocaleTimeString();
+}
+
+// ── BOTTOM BAR ────────────────────────────────────────────────────────────────
+function bbBlock() { var u = document.getElementById('bb-username').value; if(u){ quickBlock(u); document.getElementById('bb-username').value=''; } }
+function bbVouch() { var u = document.getElementById('bb-username').value.replace('@','').toLowerCase().trim(); if(u){ addToWhitelist(u); document.getElementById('bb-username').value=''; } }
+function bbAdd()   { var u = document.getElementById('bb-username').value.replace('@','').toLowerCase().trim(); if(u){ goons.push(u); renderVault(); document.getElementById('bb-username').value=''; addFeed('system','💀','VAULT','@'+u+' added to vault',''); } }
+function bbReport(){ var u = document.getElementById('bb-username').value; if(u){ addFeed('threat','🚨','REPORT','@'+u+' flagged for review',''); document.getElementById('bb-username').value=''; } }
+function executeBlock(){ var u = document.getElementById('block-input').value; if(u){ quickBlock(u); document.getElementById('block-input').value=''; } }
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var pane = document.getElementById('pane-'+name);
+  var tab  = document.getElementById('tab-'+name);
+  if (pane) pane.classList.add('active');
+  if (tab)  tab.classList.add('active');
+  if (name === 'vault' && goons.length === 0) loadVault();
+  if (name === 'deep6') loadD6Threats();
+}
+
+// ── AUTH FETCH ────────────────────────────────────────────────────────────────
+async function authFetch(path, method, body) {
+  method = method || 'GET';
+  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (jwt) opts.headers['Authorization'] = 'Bearer ' + jwt;
+  if (body) opts.body = JSON.stringify(body);
+  var r = await fetch(API + path, opts);
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
