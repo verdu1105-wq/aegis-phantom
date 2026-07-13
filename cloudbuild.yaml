@@ -1,0 +1,7 @@
+﻿steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/cybergrid/aegis-cwis', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/cybergrid/aegis-cwis']
+images:
+- 'gcr.io/cybergrid/aegis-cwis'

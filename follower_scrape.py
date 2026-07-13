@@ -12,7 +12,7 @@ load_dotenv(os.path.join(script_dir, '.env'))
 REDIS_URL = os.getenv("REDIS_URL", "redis://:DTqOikGrN26czTE4b4DWgj5Tkz849aq8@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
 SESSION_ID = os.getenv("TIKTOK_SESSION_ID", "")
 SIGN_KEY = os.getenv("TIKTOK_SIGN_API_KEY", "")
-TARGET = "cavalryspice"
+TARGET = "hogboss4"
 
 print(f"Session: {'YES ' + SESSION_ID[:8] + '...' if SESSION_ID else 'MISSING'}")
 print(f"Sign Key: {'YES' if SIGN_KEY else 'MISSING'}")

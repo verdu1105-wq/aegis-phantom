@@ -1,4 +1,4 @@
-"""
+﻿"""
 sitrep_scheduler.py
 SitRep Automated Brief + Video Pipeline
 Runs inside aegis-cwis Cloud Run service
@@ -20,20 +20,20 @@ import redis as redis_lib
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("sitrep_scheduler")
 
-# ── Redis connection (same as existing aegis-cwis config) ──────────────────────
+# â”€â”€ Redis connection (same as existing aegis-cwis config) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 REDIS_URL = os.environ.get("REDIS_URL", "")
 r = redis_lib.from_url(REDIS_URL, decode_responses=True)
 
-# ── Category config ────────────────────────────────────────────────────────────
+# â”€â”€ Category config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CATEGORIES = [
     {
         "key": "military",
         "label": "Military Intelligence",
         "style": "kinetic",          # video style
         "priority_rss": [
-            "https://www.defensenews.com/rss/",
-            "https://feeds.feedburner.com/jomsblog",
-            "https://understandingwar.org/rss.xml",
+            "https://www.defensenews.com/arc/outboundfeeds/rss/?rss=homepage",
+            "https://www.janes.com/feeds/news",
+            "https://www.twz.com/feed",
         ],
         "post_cadence_hours": 6,
     },
@@ -105,7 +105,7 @@ BREAKING_KEYWORDS = [
 ANTHROPIC_CLIENT = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
 
 
-# ── RSS fetch ──────────────────────────────────────────────────────────────────
+# â”€â”€ RSS fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def fetch_rss_headlines(urls: list[str], max_items: int = 8) -> list[dict]:
     """Fetch and parse RSS headlines using feedparser."""
     import feedparser
@@ -144,7 +144,7 @@ async def fetch_rss_headlines(urls: list[str], max_items: int = 8) -> list[dict]
 
     return unique[:max_items]
 
-# ── Breaking news detector ─────────────────────────────────────────────────────
+# â”€â”€ Breaking news detector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def check_breaking_news() -> Optional[dict]:
     """
     Check all category feeds for breaking news keywords.
@@ -175,7 +175,7 @@ async def check_breaking_news() -> Optional[dict]:
     return None
 
 
-# ── Brief generation ───────────────────────────────────────────────────────────
+# â”€â”€ Brief generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def generate_scheduled_brief(category: dict) -> Optional[dict]:
     """
     Generate a full SitRep brief for a category using Claude.
@@ -223,9 +223,9 @@ Return this exact JSON structure:
   "headline": "Single punchy headline under 12 words",
   "hook": "One sentence that makes you need to know more",
   "talking_points": [
-    {{"point": "Key finding 1", "impact": "So what — why this matters"}},
-    {{"point": "Key finding 2", "impact": "So what — why this matters"}},
-    {{"point": "Key finding 3", "impact": "So what — why this matters"}}
+    {{"point": "Key finding 1", "impact": "So what â€” why this matters"}},
+    {{"point": "Key finding 2", "impact": "So what â€” why this matters"}},
+    {{"point": "Key finding 3", "impact": "So what â€” why this matters"}}
   ],
   "bottom_line": "The one thing viewers must take away",
   "source_tags": ["SOURCE1", "SOURCE2"],
@@ -261,7 +261,7 @@ provide approximate lat/lon for the theater map. Otherwise null."""
         cache_key = f"sitrep:brief:{category['key']}"
         r.setex(cache_key, 1800, json.dumps(brief))
 
-        log.info(f"Brief generated: {brief['brief_id']} — {brief['headline'][:60]}")
+        log.info(f"Brief generated: {brief['brief_id']} â€” {brief['headline'][:60]}")
         return brief
 
     except Exception as e:
@@ -269,7 +269,7 @@ provide approximate lat/lon for the theater map. Otherwise null."""
         return None
 
 
-# ── Main scheduler entry points ────────────────────────────────────────────────
+# â”€â”€ Main scheduler entry points â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def run_scheduled_cycle():
     """
     Called by Cloud Scheduler every 6 hours.
@@ -312,3 +312,4 @@ async def run_breaking_check():
             return {"status": "breaking_queued", "id": brief["brief_id"]}
 
     return {"status": "no_breaking"}
+

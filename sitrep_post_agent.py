@@ -149,7 +149,7 @@ async def post_to_tiktok(video_path: str, caption: str, brief_id: str) -> Option
             init_payload = {
                 "post_info": {
                     "title": caption[:2200],
-                    "privacy_level": "SELF_ONLY",
+                    "privacy_level": "PUBLIC_TO_EVERYONE",
                     "disable_duet": False,
                     "disable_comment": False,
                     "disable_stitch": False,

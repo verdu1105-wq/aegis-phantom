@@ -1,0 +1,83 @@
+# ============================================================
+# AEGIS PHANTOM / ALFRED / BAT-COMPUTER  —  .gitignore
+# ============================================================
+# CRITICAL: this file keeps SECRETS out of version control.
+# Never remove the secret-exclusion lines below. If a secret is
+# ever committed even once, it lives in git history forever and
+# must be rotated immediately.
+# ============================================================
+
+# ---- SECRETS (NEVER COMMIT THESE) ----
+.env
+.env.*
+*.env
+env/
+firebase_alfred.json
+firebase*.json
+*serviceAccount*.json
+*service-account*.json
+*-adminsdk-*.json
+credentials.json
+*.pem
+*.key
+secrets/
+config/secrets*
+
+# ---- session / auth artifacts ----
+*session*.json
+cookies.txt
+*_session_id*
+
+# ---- evidence / operational data (case-sensitive, keep private) ----
+evidence/
+mole_reports/
+*.jsonl
+whitelist.txt
+*_evidence_*.txt
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env.bak/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# ---- Node / frontend (BAT-Computer) ----
+node_modules/
+.next/
+out/
+build/
+dist/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Firebase ----
+.firebase/
+firebase-debug.log
+.firebaserc.local
+firestore-debug.log
+ui-debug.log
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- logs ----
+*.log
+logs/

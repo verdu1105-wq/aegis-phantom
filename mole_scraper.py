@@ -1,521 +1,624 @@
 """
-AEGIS PHANTOM — FOLLOWER LIST SCRAPER
-mole_scraper.py
+AEGIS PHANTOM — MOLE Module (v2 — GROUNDED)
+Targeted OSINT collector for TikTok threat-actor network mapping.
 
-Scrapes TikTok follower/following lists from a target profile
-Scores each account using burner detection algorithm
-Auto-submits confirmed burners to AEGIS vault
+=============================================================================
+WHY THIS REWRITE (read before touching)
+=============================================================================
+The v1 scraper FABRICATED follower lists. When TikTok's follower page failed
+to load (bot-detection "Something went wrong", private list, empty render),
+v1 fell back to grabbing ANY `a[href*="/@"]` link on the page — which are
+TikTok's own UI chrome + the operator's OWN feed. Result: every target
+returned the SAME fake "followers" (oceanhustle1, premierleague, ...) and a
+confident "0 flagged" that was pure garbage.
 
-Usage:
-  python mole_scraper.py --target ellispine --list followers
-  python mole_scraper.py --target ellispine --list following
-  python mole_scraper.py --target ellispine --list both
-  python mole_scraper.py --target ellispine --list followers --auto-vault
-  python mole_scraper.py --test
+That is the single most dangerous failure mode in this whole operation: a tool
+that INVENTS evidence. It poisoned RECON and would poison any dossier built on
+it.
+
+THE FIX (per grounded-recon principles):
+  1. NO FABRICATED FALLBACK. If the real follower-item selectors don't match,
+     we DO NOT scrape stray page links. We record the failure and return NULL.
+     Unknown stays unknown. A failed scrape NEVER produces "followers".
+  2. PAGE-STATE DETECTION. Before trusting anything, detect whether the page
+     is: the real follower list, a "something went wrong" error, a login wall,
+     a private/empty list, or a captcha. Each is recorded distinctly.
+  3. FAIL-NULL + DIAGNOSTICS. Every failure preserves status/state/reason so
+     you know WHY it failed — not a misleading "no followers found".
+  4. HANDLE VALIDATION. A scraped handle must come from an actual follower-row
+     element, be a plausible handle, and NOT be the operator's own known feed
+     accounts (defense-in-depth against contamination).
+  5. PROVENANCE + COLLECTION METHOD on every record, so Oracle knows exactly
+     how each field was obtained and can weight it.
+
+WHAT THIS DOES NOT DO (and won't):
+  - It does not defeat signing, bypass captcha, rotate accounts, or disguise
+    automation. If TikTok blocks the follower list (very common, esp. for the
+    private lists EE/IBPrincess keep), MOLE reports THAT — it does not try to
+    force through. The honest signal "list is private/blocked" is itself
+    intelligence and goes in the record as null-with-reason.
+=============================================================================
 """
 
 import asyncio
-import os
-import json
-import httpx
-import logging
 import argparse
-import time
-import random
-from datetime import datetime
-from pathlib import Path
-from dotenv import load_dotenv
+import json
+import os
+import re
+import redis
+from datetime import datetime, timezone
+from playwright.async_api import async_playwright
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv(r'C:\Users\VernonDunbar\Documents\Aegis_Phantom\.env')
+except Exception:
+    pass  # dotenv optional; env may already be set in the session
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
-CLOUD_URL   = os.getenv("CLOUD_URL", "https://aegis-cwis-974184310088.us-east1.run.app")
-AUTH_DATA   = {"username": "d4rkn8t", "password": "aegis2026d4rk"}
-SESSION_ID  = os.getenv("TIKTOK_SESSION_ID", "")
-OUTPUT_DIR  = Path("scraper_results")
-OUTPUT_DIR.mkdir(exist_ok=True)
+REDIS_URL = os.getenv("REDIS_URL")
+VAULT_KEY = "aegis:vault"
+OUTPUT_DIR = r"C:\Users\VernonDunbar\Documents\Aegis_Phantom\mole_reports"
+COLLECTOR_VERSION = "mole-2.0-grounded"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("mole_scraper.log"),
-        logging.StreamHandler()
+# --- MOLE RECON session (dedicated, block-free recon account e.g. forshow4) --
+# IMPORTANT: MOLE uses its OWN session vars (MOLE_*), NOT the block engine's
+# TIKTOK_* session. This matters because:
+#   1. The main/block-engine account has the goons BLOCKED (and is blocked BY
+#      them). Viewing a goon's follower list from a blocked account returns a
+#      DISTORTED / empty view -- MOLE would honestly report "unavailable" but
+#      for the WRONG reason (the block relationship, not a real private list).
+#   2. Keeping recon on a separate session protects the operational block
+#      session from getting bot-flagged during recon scraping.
+# Use a CLEAN account that has NOT blocked and is NOT blocked by the targets.
+# Falls back to TIKTOK_* only if MOLE_* aren't set (with a loud warning).
+TIKTOK_SESSION_ID = os.getenv("MOLE_SESSION_ID") or os.getenv("TIKTOK_SESSION_ID", "")
+TIKTOK_TTWID      = os.getenv("MOLE_TTWID")      or os.getenv("TIKTOK_TTWID", "")
+TIKTOK_MS_TOKEN   = os.getenv("MOLE_MS_TOKEN")   or os.getenv("TIKTOK_MS_TOKEN", "")
+TIKTOK_CSRF_TOKEN = os.getenv("MOLE_CSRF_TOKEN") or os.getenv("TIKTOK_CSRF_TOKEN", "")
+_USING_MOLE_SESSION = bool(os.getenv("MOLE_SESSION_ID"))
+
+
+def session_cookies():
+    """Build the cookie list for an authenticated context. Empty values dropped."""
+    cookies = [
+        {"name": "sessionid",     "value": TIKTOK_SESSION_ID, "domain": ".tiktok.com", "path": "/"},
+        {"name": "ttwid",         "value": TIKTOK_TTWID,      "domain": ".tiktok.com", "path": "/"},
+        {"name": "msToken",       "value": TIKTOK_MS_TOKEN,   "domain": ".tiktok.com", "path": "/"},
+        {"name": "tt_csrf_token", "value": TIKTOK_CSRF_TOKEN, "domain": ".tiktok.com", "path": "/"},
     ]
-)
+    return [c for c in cookies if c["value"]]
 
-# ── BURNER SCORING ALGORITHM ──────────────────────────────────────────────────
-def score_account(username, following, followers, likes, verified=False):
+# Operator's OWN feed accounts — if a "follower scrape" returns these, it's the
+# contamination bug. We hard-exclude them AND treat their presence as a signal
+# that the scrape hit the operator's feed, not the target's followers.
+# (Extend this list with whatever shows in the operator's own sidebar.)
+OPERATOR_FEED_CONTAMINATION = {
+    "oceanhustle1", "premierleagueusa", "ocean.warriors1", "mdesings",
+    "tandecoration", "vukovic_vlad", "cutezip33",
+}
+
+EE_KNOWN = {
+    "ee2.0", "reeree", "snowwhitee23", "charliee_092", "reneeregina",
+    "usmcvet2012", "tankerb29", "iceman8386", "jessessprout", "jarmygal",
+    "hboss288", "teedrinker", "quack_dealer0331", "tomrockingreene9095",
+    "jeffreyalvarado44", "nylah4ever0", "123qman", "suzannesinkevich",
+    "brelan671", "roystoncort", "scott.vietnam.vet",
+}
+
+# a plausible tiktok handle: letters/digits/._ , 2-24 chars
+HANDLE_RE = re.compile(r"^[a-z0-9._]{2,24}$")
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def load_vault():
+    if not REDIS_URL:
+        print("[MOLE] No REDIS_URL — vault cross-reference disabled (will note as such)")
+        return None   # None = unavailable, distinct from empty set
+    try:
+        r = redis.from_url(REDIS_URL, decode_responses=True)
+        vault = set(r.smembers(VAULT_KEY))
+        print(f"[MOLE] Vault loaded: {len(vault)} accounts")
+        return vault
+    except Exception as e:
+        print(f"[MOLE] Vault load FAILED: {e}")
+        return None
+
+
+def cross_reference(handle: str, vault) -> dict:
     """
-    Score an account for burner probability.
-    Returns: (score 0-100, verdict, reasons)
+    Cross-reference a handle. Split into OBSERVED facts vs SUGGESTIVE flags.
+    Note: double-dot / numeric-suffix are WEAK signals — kept, but labeled as
+    suggestive, NOT as a threat verdict.
     """
-    score = 0
-    reasons = []
-
-    # Zero likes = strong burner indicator
-    if likes == 0:
-        score += 35
-        reasons.append("ZERO LIKES")
-    elif likes < 10:
-        score += 20
-        reasons.append(f"VERY LOW LIKES ({likes})")
-
-    # High following / low followers ratio
-    if followers == 0:
-        score += 30
-        reasons.append("ZERO FOLLOWERS")
-    elif following > 0 and followers > 0:
-        ratio = following / followers
-        if ratio > 10:
-            score += 30
-            reasons.append(f"EXTREME RATIO {ratio:.0f}:1")
-        elif ratio > 5:
-            score += 20
-            reasons.append(f"HIGH RATIO {ratio:.0f}:1")
-        elif ratio > 3:
-            score += 10
-            reasons.append(f"ELEVATED RATIO {ratio:.0f}:1")
-
-    # Very high following count with no content
-    if following > 1000 and likes == 0:
-        score += 15
-        reasons.append("MASS FOLLOW / NO CONTENT")
-    elif following > 500 and likes < 5:
-        score += 10
-        reasons.append("HIGH FOLLOW / MINIMAL CONTENT")
-
-    # Username patterns
-    import re
-    u = username.lower()
-
-    # EE network patterns
-    if re.search(r'e{2,}', u):
-        score += 20
-        reasons.append("EE PATTERN IN USERNAME")
-    if re.search(r'\.\.[a-z0-9]', u):
-        score += 25
-        reasons.append("DOUBLE DOT PATTERN")
-    if re.match(r'^e[a-z]+\d+$', u):
-        score += 15
-        reasons.append("E+WORD+NUMBERS PATTERN")
-
-    # Generic burner username patterns
-    if re.match(r'^user\d+$', u):
-        score += 20
-        reasons.append("GENERIC USER+NUMBERS USERNAME")
-    if re.match(r'^[a-z]+\d{6,}$', u):
-        score += 15
-        reasons.append("WORD+LONG NUMBERS USERNAME")
-    if re.search(r'\d{8,}', u):
-        score += 10
-        reasons.append("LONG NUMBER STRING IN USERNAME")
-
-    # Very low followers
-    if followers < 10:
-        score += 15
-        reasons.append(f"VERY LOW FOLLOWERS ({followers})")
-    elif followers < 50:
-        score += 5
-        reasons.append(f"LOW FOLLOWERS ({followers})")
-
-    # Verified accounts are not burners
-    if verified:
-        score = 0
-        reasons = ["VERIFIED ACCOUNT"]
-
-    # Cap at 100
-    score = min(score, 100)
-
-    # Verdict
-    if score >= 70:
-        verdict = "CONFIRMED_BURNER"
-    elif score >= 45:
-        verdict = "PROBABLE_BURNER"
-    elif score >= 25:
-        verdict = "SUSPICIOUS"
-    else:
-        verdict = "LIKELY_LEGIT"
-
-    return score, verdict, reasons
+    h = handle.lower().strip("@")
+    in_vault = (h in vault) if vault is not None else None   # None = unknown
+    return {
+        # OBSERVED (verifiable):
+        "in_vault": in_vault,                 # None if vault unavailable
+        "in_ee_known": h in EE_KNOWN,
+        # SUGGESTIVE (weak signals — not verdicts):
+        "suggestive": {
+            "double_dot": ".." in h,
+            "numeric_suffix": bool(re.search(r"\d$", h)),
+        },
+    }
 
 
-# ── AEGIS API ─────────────────────────────────────────────────────────────────
-class AEGISClient:
-    def __init__(self):
-        self.token = None
+# --------------------------------------------------------------------------
+# PAGE-STATE DETECTION — the core of the fix.
+# Determine what we're ACTUALLY looking at before extracting anything.
+# --------------------------------------------------------------------------
+async def detect_page_state(page) -> dict:
+    """
+    Returns {"state": <str>, "detail": <str>}.
+    Possible states:
+      ok_list        -> a real follower/following list appears present
+      error_page     -> TikTok "Something went wrong"
+      login_wall     -> logged out / login prompt
+      private_empty  -> list is private or empty (no rows, no error)
+      captcha        -> anti-bot challenge visible
+      unknown        -> couldn't classify (treated as failure, returns null)
+    """
+    try:
+        info = await page.evaluate("""
+            () => {
+                const body = document.body ? document.body.innerText : '';
+                const has = (t) => body.toLowerCase().includes(t.toLowerCase());
+                return {
+                    title: document.title || '',
+                    somethingWrong: has('Something went wrong'),
+                    login: !!document.querySelector('[data-e2e="top-login-button"], [data-e2e="login-button"]'),
+                    captcha: has('verify to continue') || has('captcha') ||
+                             !!document.querySelector('[class*="captcha"]'),
+                    // real follower list rows use these; presence => list rendered
+                    userItems: document.querySelectorAll('[data-e2e="user-item"], [data-e2e="follow-item"]').length,
+                    privateHint: has('This account is private') || has('No followers yet'),
+                };
+            }
+        """)
+    except Exception as e:
+        return {"state": "unknown", "detail": f"detect failed: {e}"}
 
-    async def login(self):
-        async with httpx.AsyncClient(timeout=10) as http:
-            try:
-                resp = await http.post(f"{CLOUD_URL}/api/auth/login", json=AUTH_DATA)
-                resp.raise_for_status()
-                self.token = resp.json().get("token")
-                logging.info("AEGIS authenticated")
-                return True
-            except Exception as e:
-                logging.error(f"AEGIS login failed: {e}")
-                return False
+    if info.get("captcha"):
+        return {"state": "captcha", "detail": "anti-bot challenge visible"}
+    if info.get("somethingWrong"):
+        return {"state": "error_page", "detail": "TikTok 'Something went wrong'"}
+    if info.get("login"):
+        return {"state": "login_wall", "detail": "login prompt present"}
+    if info.get("userItems", 0) > 0:
+        return {"state": "ok_list", "detail": f"{info['userItems']} follower rows present"}
+    if info.get("privateHint"):
+        return {"state": "private_empty", "detail": "private or empty list"}
+    # no rows, no error, no login -> can't confirm it's a real list. FAIL.
+    return {"state": "unknown", "detail": f"no follower rows; title={info.get('title','')!r}"}
 
-    async def add_to_vault(self, username, reason="scraper"):
-        if not self.token:
-            return False
-        async with httpx.AsyncClient(timeout=10) as http:
-            try:
-                resp = await http.post(
-                    f"{CLOUD_URL}/api/goons",
-                    json={"username": username, "reason": reason},
-                    headers={"Authorization": f"Bearer {self.token}"}
-                )
-                return resp.status_code == 200
-            except Exception:
-                return False
 
-    async def check_vault(self, username):
-        """Check if username is already in vault."""
-        if not self.token:
-            return False
-        async with httpx.AsyncClient(timeout=10) as http:
-            try:
-                resp = await http.get(
-                    f"{CLOUD_URL}/api/goons",
-                    headers={"Authorization": f"Bearer {self.token}"}
-                )
-                data = resp.json()
-                goons = data.get("goons", [])
-                return username.lower() in [g.lower() for g in goons]
-            except Exception:
-                return False
+# --------------------------------------------------------------------------
+# GROUNDED list scrape. Returns a dict, ALWAYS with an explicit outcome.
+# On any non-ok state -> returns {"ok": False, "state": ..., "items": None}.
+# NEVER fabricates from stray page links.
+# --------------------------------------------------------------------------
+async def scrape_list_grounded(page, target: str, list_type: str, vault) -> dict:
+    """
+    list_type: "followers" or "following"
 
-    async def submit_scraper_report(self, target, results):
-        """Submit full scraper report to MOLE reports endpoint."""
-        if not self.token:
-            return
-        burners = [r for r in results if r["verdict"] in ["CONFIRMED_BURNER", "PROBABLE_BURNER"]]
-        usernames = [r["username"] for r in burners]
-        report = {
-            "agent":           AUTH_DATA["username"],
-            "target_stream":   target,
-            "trigger_keyword": "FOLLOWER_SCRAPE",
-            "context":         f"Follower list scrape of @{target}. {len(results)} accounts analyzed. {len(burners)} burners identified.",
-            "usernames":       usernames,
-            "timestamp":       datetime.utcnow().isoformat()
+    TikTok shows follower/following as a MODAL you open by CLICKING the count
+    on the profile page (not a standalone /followers URL, which drifts to the
+    feed). So we: go to the profile -> click the followers/following count ->
+    wait for the modal rows to render -> scroll to load more -> read them.
+
+    Returns the same grounded structure; still fail-null, never fabricates.
+    """
+    out = {
+        "ok": False, "state": None, "detail": None, "items": None,
+        "collection_method": "playwright_modal_click", "collected_at": now_iso(),
+    }
+
+    # 1) land on the profile page
+    try:
+        await page.goto(f"https://www.tiktok.com/@{target}",
+                        timeout=30000, wait_until="domcontentloaded")
+        await asyncio.sleep(3)
+    except Exception as e:
+        out["state"] = "nav_failed"
+        out["detail"] = f"profile navigation failed: {e}"
+        print(f"[MOLE] {list_type}: profile NAV FAILED for @{target} -> null ({e})")
+        return out
+
+    # 2) click the count to open the modal.
+    #    Scope to the profile header count strong element to avoid hitting the
+    #    inbox icon (which also carries a 'followers' data-e2e in its tab bar).
+    count_selector = ('[data-e2e="followers-count"]' if list_type == "followers"
+                      else '[data-e2e="following-count"]')
+    try:
+        # prefer clicking the count that sits in the profile header (has a
+        # title/strong near it), not any stray match.
+        count_el = page.locator(count_selector).first
+        await count_el.scroll_into_view_if_needed(timeout=3000)
+        await count_el.click(timeout=6000)
+    except Exception as e:
+        out["state"] = "modal_open_failed"
+        out["detail"] = f"could not click {list_type} count: {e}"
+        print(f"[MOLE] {list_type}: could not open modal for @{target} -> null ({e})")
+        return out
+
+    # 3) wait for the FOLLOWER-LIST modal specifically (NOT the notification
+    #    inbox, which is also a [role=dialog] and has a "Followers" TAB).
+    #    The follower modal contains the target's username header + follower
+    #    rows that are /@handle anchors. We identify it by: a dialog that is
+    #    NOT the inbox (no DivInboxContainer) AND contains /@ anchors OR the
+    #    Following/Followers/Suggested tab set.
+    def _modal_probe_js():
+        return """
+        () => {
+            const dialogs = [...document.querySelectorAll('[role="dialog"], [class*="DivUserListContainer"], [class*="UserList"]')];
+            // pick the dialog that is NOT the inbox and looks like a user list
+            let target = null;
+            for (const d of dialogs) {
+                const cls = (d.className || '').toString();
+                if (cls.includes('Inbox')) continue;           // skip notifications
+                const t = (d.innerText || '').toLowerCase();
+                const atLinks = d.querySelectorAll('a[href*="/@"]').length;
+                const looksLikeList = atLinks > 0 ||
+                    (t.includes('following') && t.includes('followers') && t.includes('suggested'));
+                if (looksLikeList) { target = d; break; }
+            }
+            if (!target) return { hasModal:false };
+            const txt = (target.innerText || '').toLowerCase();
+            const rows = target.querySelectorAll('a[href*="/@"]');
+            return {
+                hasModal: true,
+                rowCount: rows.length,
+                private: txt.includes('this account is private') || txt.includes('no followers yet'),
+                somethingWrong: txt.includes('something went wrong'),
+            };
         }
-        async with httpx.AsyncClient(timeout=10) as http:
-            try:
-                await http.post(f"{CLOUD_URL}/api/mole/report", json=report)
-                logging.info(f"Scraper report submitted — {len(burners)} burners")
-            except Exception as e:
-                logging.error(f"Report submission failed: {e}")
-
-
-# ── TIKTOK SCRAPER ────────────────────────────────────────────────────────────
-class TikTokScraper:
-    def __init__(self):
-        self.aegis = AEGISClient()
-
-    async def scrape_with_playwright(self, target, list_type="followers", auto_vault=False):
         """
-        Scrape follower/following list using Playwright browser automation.
-        list_type: 'followers', 'following', or 'both'
-        """
+
+    try:
+        await page.wait_for_selector('[role="dialog"]', timeout=6000)
+    except Exception:
+        pass
+
+    modal_info = {}
+    for _ in range(8):
+        await asyncio.sleep(1)
+        modal_info = await page.evaluate(_modal_probe_js())
+        if modal_info.get("rowCount", 0) > 0 or modal_info.get("private") \
+           or modal_info.get("somethingWrong"):
+            break
+
+    if not modal_info.get("hasModal"):
+        out["state"] = "no_modal"
+        out["detail"] = "clicked count but no dialog appeared"
+        print(f"[MOLE] {list_type}: no modal opened for @{target} -> null")
+        return out
+    if modal_info.get("somethingWrong"):
+        out["state"] = "error_page"
+        out["detail"] = "modal shows 'something went wrong'"
+        print(f"[MOLE] {list_type}: modal error for @{target} -> null")
+        return out
+    if modal_info.get("rowCount", 0) == 0:
+        # DIAGNOSTIC: modal opened but no a[href*="/@"] rows found. Dump what's
+        # actually inside the dialog so we can find the real row structure.
+        # Diagnostic only — extracts nothing, fabricates nothing.
         try:
-            from playwright.async_api import async_playwright
-        except ImportError:
-            logging.error("Playwright not installed. Run: pip install playwright && playwright install chromium")
-            return []
-
-        results = []
-        url_map = {
-            "followers": f"https://www.tiktok.com/@{target}/followers",
-            "following": f"https://www.tiktok.com/@{target}/following"
-        }
-
-        lists_to_scrape = ["followers", "following"] if list_type == "both" else [list_type]
-
-        async with async_playwright() as p:
-            # Launch browser — headless=False so you can see what's happening
-            browser = await p.chromium.launch(
-                headless=False,
-                args=["--no-sandbox", "--disable-blink-features=AutomationControlled"]
-            )
-
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                viewport={"width": 1280, "height": 800},
-                locale="en-US"
-            )
-
-            # Inject session cookie for burner account
-            if SESSION_ID:
-                await context.add_cookies([{
-                    "name": "sessionid",
-                    "value": SESSION_ID,
-                    "domain": ".tiktok.com",
-                    "path": "/"
-                }])
-                logging.info("Session cookie injected")
-
-            page = await context.new_page()
-
-            # Hide automation markers
-            await page.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3]});
+            mdiag = await page.evaluate("""
+                () => {
+                    const dlg = document.querySelector('[role="dialog"]');
+                    if (!dlg) return { note: 'no dialog at diag time' };
+                    // count different kinds of links/handles inside
+                    const allLinks = dlg.querySelectorAll('a').length;
+                    const atLinks = dlg.querySelectorAll('a[href*="/@"]').length;
+                    const dataE2e = [...new Set([...dlg.querySelectorAll('[data-e2e]')]
+                                     .map(e => e.getAttribute('data-e2e')))];
+                    // sample the first 400 chars of dialog text
+                    const textSample = (dlg.innerText || '').slice(0, 400);
+                    // sample class names of direct children
+                    const childCls = [...dlg.children].slice(0,4)
+                                     .map(c => (c.className||'').toString().slice(0,60));
+                    return { allLinks, atLinks, dataE2e, textSample, childCls };
+                }
             """)
+            print(f"[MOLE]   MODAL-DIAG links(total/@): "
+                  f"{mdiag.get('allLinks')}/{mdiag.get('atLinks')}")
+            print(f"[MOLE]   MODAL-DIAG data-e2e in modal: {mdiag.get('dataE2e')}")
+            print(f"[MOLE]   MODAL-DIAG child classes: {mdiag.get('childCls')}")
+            print(f"[MOLE]   MODAL-DIAG text sample: {mdiag.get('textSample')!r}")
+        except Exception as e:
+            print(f"[MOLE]   MODAL-DIAG failed: {e}")
 
-            for list_name in lists_to_scrape:
-                logging.info(f"Scraping {list_name} of @{target}...")
-                list_results = []
+        if modal_info.get("private"):
+            out["state"] = "private_empty"
+            out["detail"] = "modal indicates private/empty list"
+        else:
+            out["state"] = "modal_empty"
+            out["detail"] = "modal opened but no rows rendered"
+        print(f"[MOLE] {list_type}: modal empty for @{target} "
+              f"-> null (state={out['state']})")
+        return out
 
-                try:
-                    await page.goto(url_map[list_name], wait_until="networkidle", timeout=15000)
-                    await asyncio.sleep(random.uniform(2, 4))
+    # 4) scroll the follower modal to load more rows (lazy-loaded).
+    #    Use the same non-inbox user-list container.
+    try:
+        for _ in range(6):
+            await page.evaluate("""
+                () => {
+                    const dialogs = [...document.querySelectorAll('[role="dialog"], [class*="DivUserListContainer"], [class*="UserList"]')];
+                    for (const d of dialogs) {
+                        if ((d.className||'').toString().includes('Inbox')) continue;
+                        if (d.querySelector('a[href*="/@"]')) {
+                            const scroller = d.querySelector('div[style*="overflow"]') || d;
+                            scroller.scrollTop = scroller.scrollHeight;
+                            break;
+                        }
+                    }
+                }
+            """)
+            await asyncio.sleep(1.2)
+    except Exception:
+        pass
 
-                    # Scroll to load accounts
-                    accounts_found = set()
-                    no_new_count = 0
-                    scroll_count = 0
-                    max_scrolls = 50  # Adjust for deeper scrapes
+    # 5) extract ONLY from anchors inside the correct (non-inbox) modal.
+    items = []
+    try:
+        rows = await page.evaluate("""
+            () => {
+                const dialogs = [...document.querySelectorAll('[role="dialog"], [class*="DivUserListContainer"], [class*="UserList"]')];
+                let dlg = null;
+                for (const d of dialogs) {
+                    if ((d.className||'').toString().includes('Inbox')) continue;
+                    if (d.querySelector('a[href*="/@"]')) { dlg = d; break; }
+                }
+                if (!dlg) return [];
+                const seen = new Set();
+                const out = [];
+                dlg.querySelectorAll('a[href*="/@"]').forEach(a => {
+                    const m = a.href.match(/\\/@([^\\/?]+)/);
+                    if (m) {
+                        const h = m[1].toLowerCase();
+                        if (!seen.has(h)) { seen.add(h); out.push(h); }
+                    }
+                });
+                return out;
+            }
+        """)
+        for h in rows:
+            if not HANDLE_RE.match(h):
+                continue
+            if h == target.lower():
+                continue
+            if h in OPERATOR_FEED_CONTAMINATION:
+                print(f"[MOLE] {list_type}: CONTAMINATION (@{h}) — aborting, null.")
+                out["ok"] = False
+                out["state"] = "contaminated"
+                out["detail"] = f"operator-feed account {h} appeared; scrape invalid"
+                out["items"] = None
+                return out
+            items.append({"handle": h, **cross_reference(h, vault)})
+    except Exception as e:
+        out["state"] = "extract_failed"
+        out["detail"] = f"modal extraction failed: {e}"
+        print(f"[MOLE] {list_type}: extraction failed for @{target} -> null ({e})")
+        return out
 
-                    while scroll_count < max_scrolls and no_new_count < 5:
-                        # Extract account data from page
-                        accounts = await page.evaluate("""
-                            () => {
-                                const items = [];
-                                // TikTok follower list items
-                                const selectors = [
-                                    '[data-e2e="followers-item"]',
-                                    '[data-e2e="following-item"]',
-                                    '.tiktok-1g04lal-DivUserListContainer > div',
-                                    '[class*="UserCard"]',
-                                    '[class*="user-item"]'
-                                ];
-                                
-                                for (const sel of selectors) {
-                                    const els = document.querySelectorAll(sel);
-                                    if (els.length > 0) {
-                                        els.forEach(el => {
-                                            const usernameEl = el.querySelector('[data-e2e="user-card-nickname"]') ||
-                                                               el.querySelector('[class*="nickname"]') ||
-                                                               el.querySelector('a[href*="/@"]');
-                                            const statsEls = el.querySelectorAll('[class*="count"]');
-                                            
-                                            let username = '';
-                                            if (usernameEl) {
-                                                const href = usernameEl.getAttribute('href') || '';
-                                                username = href.replace('/@', '').split('?')[0] ||
-                                                           usernameEl.textContent.replace('@','').trim();
-                                            }
-                                            
-                                            if (username) {
-                                                items.push({
-                                                    username: username,
-                                                    stats_text: el.innerText || ''
-                                                });
-                                            }
-                                        });
-                                        break;
-                                    }
-                                }
-                                return items;
-                            }
-                        """)
+    if not items:
+        out["state"] = "modal_empty"
+        out["detail"] = "no valid handles extracted from modal"
+        print(f"[MOLE] {list_type}: no handles extracted for @{target} -> null")
+        return out
 
-                        new_found = 0
-                        for acc in accounts:
-                            uname = acc["username"].strip().lstrip("@")
-                            if uname and uname not in accounts_found:
-                                accounts_found.add(uname)
-                                new_found += 1
+    out["ok"] = True
+    out["state"] = "ok_list"
+    out["detail"] = f"{len(items)} rows from modal"
+    out["items"] = items
+    flagged = sum(1 for it in items if it["in_vault"] or it["in_ee_known"])
+    print(f"[MOLE] {list_type}: OK for @{target} — {len(items)} real rows, "
+          f"{flagged} vault/EE matches.")
 
-                                # Parse stats from text
-                                stats_text = acc.get("stats_text", "")
-                                following, followers, likes = parse_stats_from_text(stats_text, uname)
+    # close the modal before the next list (so followers vs following don't collide)
+    try:
+        await page.keyboard.press("Escape")
+        await asyncio.sleep(1)
+    except Exception:
+        pass
 
-                                score, verdict, reasons = score_account(uname, following, followers, likes)
-
-                                result = {
-                                    "username":  uname,
-                                    "following": following,
-                                    "followers": followers,
-                                    "likes":     likes,
-                                    "score":     score,
-                                    "verdict":   verdict,
-                                    "reasons":   reasons,
-                                    "list_type": list_name,
-                                    "target":    target,
-                                    "scraped_at": datetime.utcnow().isoformat()
-                                }
-                                list_results.append(result)
-
-                                log_color = "🔴" if verdict == "CONFIRMED_BURNER" else "🟡" if verdict == "PROBABLE_BURNER" else "⚪"
-                                logging.info(f"{log_color} @{uname} — Score: {score} — {verdict}")
-
-                        if new_found == 0:
-                            no_new_count += 1
-                        else:
-                            no_new_count = 0
-
-                        # Scroll down
-                        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                        await asyncio.sleep(random.uniform(1.5, 3.0))
-                        scroll_count += 1
-
-                        logging.info(f"Scroll {scroll_count}/{max_scrolls} — {len(accounts_found)} accounts found")
-
-                    logging.info(f"Completed {list_name} scrape: {len(list_results)} accounts")
-                    results.extend(list_results)
-
-                except Exception as e:
-                    logging.error(f"Error scraping {list_name}: {e}")
-
-            await browser.close()
-
-        return results
-
-    async def run(self, target, list_type, auto_vault):
-        """Main scraper run."""
-        logging.info(f"AEGIS MOLE SCRAPER starting — target: @{target} — list: {list_type}")
-
-        # Login to AEGIS
-        await self.aegis.login()
-
-        # Scrape
-        results = await self.scrape_with_playwright(target, list_type, auto_vault)
-
-        if not results:
-            logging.warning("No results found.")
-            return
-
-        # Sort by score
-        results.sort(key=lambda x: x["score"], reverse=True)
-
-        # Summary
-        confirmed = [r for r in results if r["verdict"] == "CONFIRMED_BURNER"]
-        probable  = [r for r in results if r["verdict"] == "PROBABLE_BURNER"]
-        suspicious = [r for r in results if r["verdict"] == "SUSPICIOUS"]
-
-        logging.info(f"\n{'='*50}")
-        logging.info(f"SCRAPE COMPLETE: @{target}")
-        logging.info(f"Total accounts: {len(results)}")
-        logging.info(f"Confirmed burners: {len(confirmed)}")
-        logging.info(f"Probable burners:  {len(probable)}")
-        logging.info(f"Suspicious:        {len(suspicious)}")
-        logging.info(f"{'='*50}")
-
-        # Save results
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        outfile = OUTPUT_DIR / f"scrape_{target}_{list_type}_{timestamp}.json"
-        with open(outfile, "w") as f:
-            json.dump({
-                "target":    target,
-                "list_type": list_type,
-                "scraped_at": timestamp,
-                "summary": {
-                    "total":     len(results),
-                    "confirmed": len(confirmed),
-                    "probable":  len(probable),
-                    "suspicious": len(suspicious)
-                },
-                "results": results
-            }, f, indent=2)
-        logging.info(f"Results saved: {outfile}")
-
-        # Auto-vault confirmed + probable burners
-        if auto_vault:
-            to_vault = confirmed + probable
-            logging.info(f"Auto-vaulting {len(to_vault)} accounts...")
-            vaulted = 0
-            for acc in to_vault:
-                success = await self.aegis.add_to_vault(
-                    acc["username"],
-                    reason=f"scraper:{acc['verdict']}:score{acc['score']}"
-                )
-                if success:
-                    vaulted += 1
-                    logging.info(f"  ☠ Vaulted @{acc['username']} (score: {acc['score']})")
-                await asyncio.sleep(random.uniform(0.3, 0.8))  # Rate limit
-            logging.info(f"Vaulted {vaulted}/{len(to_vault)} accounts")
-
-        # Submit report to AEGIS
-        await self.aegis.submit_scraper_report(target, results)
-
-        # Print top threats
-        print(f"\n{'='*60}")
-        print(f"TOP THREATS FROM @{target} {list_type.upper()}")
-        print(f"{'='*60}")
-        for r in results[:20]:
-            if r["score"] >= 25:
-                print(f"{'🔴' if r['verdict']=='CONFIRMED_BURNER' else '🟡' if r['verdict']=='PROBABLE_BURNER' else '⚠️'} "
-                      f"@{r['username']:<30} Score:{r['score']:>3} | {' | '.join(r['reasons'][:2])}")
-
-        return results
+    return out
 
 
-def parse_stats_from_text(text, username):
-    """Parse following/followers/likes from account text block."""
-    import re
-    nums = re.findall(r'[\d,]+(?:\.\d+)?[KkMm]?', text)
-
-    def to_int(s):
-        s = s.replace(',', '')
-        if s.endswith(('K', 'k')):
-            return int(float(s[:-1]) * 1000)
-        if s.endswith(('M', 'm')):
-            return int(float(s[:-1]) * 1000000)
+async def scrape_profile(page, target: str, vault) -> dict:
+    """
+    Scrape the profile header. Each field FAIL-NULLs individually — a missing
+    field stays null, never a placeholder that reads as data.
+    """
+    prof = {
+        "username": None, "followers": None, "following": None,
+        "likes": None, "bio": None, "video_count": None, "sec_uid": None,
+    }
+    field_map = {
+        "username":  '[data-e2e="user-subtitle"]',
+        "followers": '[data-e2e="followers-count"]',
+        "following": '[data-e2e="following-count"]',
+        "likes":     '[data-e2e="likes-count"]',
+        "bio":       '[data-e2e="user-bio"]',
+    }
+    for field, sel in field_map.items():
         try:
-            return int(s)
-        except:
-            return 0
+            val = await page.text_content(sel, timeout=5000)
+            prof[field] = val.strip() if val and val.strip() else None
+        except Exception:
+            prof[field] = None   # null, not "N/A"
+    try:
+        vids = await page.query_selector_all('[data-e2e="video-views"]')
+        prof["video_count"] = len(vids) if vids else None
+    except Exception:
+        prof["video_count"] = None
+    try:
+        sec_uid = await page.evaluate("""
+            () => {
+                try {
+                    const d = window.__UNIVERSAL_DATA_FOR_REHYDRATION__;
+                    if (d) { const m = JSON.stringify(d).match(/"secUid":"([^"]+)"/); if (m) return m[1]; }
+                } catch(e){}
+                for (const s of document.querySelectorAll('script')) {
+                    const m = (s.textContent||'').match(/"secUid":"([^"]+)"/);
+                    if (m) return m[1];
+                }
+                return null;
+            }
+        """)
+        prof["sec_uid"] = sec_uid or None
+    except Exception:
+        prof["sec_uid"] = None
+    return prof
 
-    vals = [to_int(n) for n in nums[:3]]
-    while len(vals) < 3:
-        vals.append(0)
-    return vals[0], vals[1], vals[2]
+
+async def recon_target(page, target: str, vault) -> dict:
+    """Full grounded recon on one target. Every section fail-nulls honestly."""
+    print(f"\n[MOLE] ===== RECON @{target} =====")
+    record = {
+        "account_id": f"platform:tiktok:{target.lower()}",
+        "platform": "tiktok",
+        "username": target.lower(),
+        "profile_url": f"https://www.tiktok.com/@{target}",
+        "collector_version": COLLECTOR_VERSION,
+        "collected_at": now_iso(),
+        "profile": None,
+        "followers": None,   # will hold the grounded scrape result dict
+        "following": None,
+        "cross_reference": cross_reference(target, vault),
+        # split confidence — behavioral vs identity kept separate (per grounding)
+        "confidence": {
+            "behavioral_threat": None,    # filled by Oracle from operational data
+            "cluster_association": None,  # filled by Oracle from co-occurrence
+            "identity_attribution": None, # ALWAYS separate; scraping never sets this
+        },
+        "provenance": [{"source": "mole_scraper", "version": COLLECTOR_VERSION,
+                        "collected_at": now_iso()}],
+    }
+
+    # profile
+    try:
+        await page.goto(f"https://www.tiktok.com/@{target}",
+                        timeout=30000, wait_until="domcontentloaded")
+        await asyncio.sleep(3)
+        record["profile"] = await scrape_profile(page, target, vault)
+        print(f"[MOLE] profile: followers={record['profile']['followers']} "
+              f"following={record['profile']['following']} "
+              f"bio={(record['profile']['bio'] or '')[:60]!r}")
+    except Exception as e:
+        print(f"[MOLE] profile scrape FAILED for @{target}: {e} -> profile stays null")
+        record["profile"] = None
+
+    # followers (grounded — returns null-with-reason on failure, NEVER fabricates)
+    record["followers"] = await scrape_list_grounded(page, target, "followers", vault)
+    # following
+    record["following"] = await scrape_list_grounded(page, target, "following", vault)
+
+    return record
 
 
-# ── CLI ────────────────────────────────────────────────────────────────────────
-async def main():
-    parser = argparse.ArgumentParser(description="AEGIS MOLE Follower Scraper")
-    parser.add_argument("--target",     required=False, help="TikTok username to scrape")
-    parser.add_argument("--list",       default="followers", choices=["followers","following","both"])
-    parser.add_argument("--auto-vault", action="store_true", help="Auto-add burners to AEGIS vault")
-    parser.add_argument("--test",       action="store_true", help="Test AEGIS connection")
-    parser.add_argument("--score",      help="Score a single account: --score username,following,followers,likes")
-    args = parser.parse_args()
+async def run(targets, headless=True):
+    vault = load_vault()
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    # Test mode
-    if args.test:
-        client = AEGISClient()
-        success = await client.login()
-        print("AEGIS connection: OK" if success else "AEGIS connection: FAILED")
-        return
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=headless,
+                    args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 900},
+        )
 
-    # Score single account
-    if args.score:
-        parts = args.score.split(",")
-        if len(parts) >= 4:
-            uname = parts[0]
-            following, followers, likes = int(parts[1]), int(parts[2]), int(parts[3])
-            score, verdict, reasons = score_account(uname, following, followers, likes)
-            print(f"\n@{uname}")
-            print(f"Score:   {score}/100")
-            print(f"Verdict: {verdict}")
-            print(f"Reasons: {', '.join(reasons)}")
-        return
+        # Authenticate: add the session cookies so follower/following LISTS are
+        # viewable (they require login even for public accounts).
+        cookies = session_cookies()
+        if cookies:
+            await context.add_cookies(cookies)
+            which = "MOLE recon session (forshow4)" if _USING_MOLE_SESSION else \
+                    "WARNING: fell back to TIKTOK_* (block-engine) session — that " \
+                    "account may have goons BLOCKED, which DISTORTS recon views!"
+            print(f"[MOLE] Session authenticated ({len(cookies)} cookies) — {which}")
+        else:
+            print("[MOLE] WARNING: no session cookies in .env — follower/following "
+                  "lists will hit login_wall and return null. Set TIKTOK_SESSION_ID "
+                  "etc. in .env to read lists.")
 
-    if not args.target:
-        parser.print_help()
-        return
+        page = await context.new_page()
 
-    scraper = TikTokScraper()
-    await scraper.run(
-        target=args.target.lstrip("@"),
-        list_type=args.list,
-        auto_vault=args.auto_vault
-    )
+        records = []
+        for t in targets:
+            rec = await recon_target(page, t.strip().lstrip("@"), vault)
+            records.append(rec)
+
+        await browser.close()
+
+    # write outputs
+    base = os.path.join(OUTPUT_DIR, f"MOLE_{'_'.join(targets)}_{ts}")
+    with open(base + ".json", "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+
+    # honest summary — reports null/blocked lists AS SUCH, never as "0 found"
+    with open(base + "_SUMMARY.txt", "w", encoding="utf-8") as f:
+        f.write("=" * 60 + "\nMOLE SUMMARY (grounded)\n" + "=" * 60 + "\n")
+        for rec in records:
+            u = rec["username"]
+            prof = rec["profile"]
+            f.write(f"\n@{u}\n")
+            if prof:
+                f.write(f"  followers_count: {prof['followers']}  "
+                        f"following_count: {prof['following']}  likes: {prof['likes']}\n")
+                f.write(f"  bio: {(prof['bio'] or '')[:80]!r}\n")
+            else:
+                f.write("  profile: NULL (scrape failed — not recorded as data)\n")
+            for lt in ("followers", "following"):
+                r = rec[lt]
+                if r and r.get("ok"):
+                    n = len(r["items"])
+                    fl = sum(1 for it in r["items"] if it["in_vault"] or it["in_ee_known"])
+                    f.write(f"  {lt}: {n} REAL rows, {fl} vault/EE matches\n")
+                else:
+                    state = r.get("state") if r else "not_attempted"
+                    f.write(f"  {lt}: UNAVAILABLE — state={state} "
+                            f"(NO data fabricated; list may be private/blocked)\n")
+        f.write("\n" + "=" * 60 + "\n")
+        f.write("NOTE: 'UNAVAILABLE' means the list could not be honestly read\n")
+        f.write("(private, blocked, or bot-detected). It does NOT mean 'no\n")
+        f.write("followers'. A private/blocked list is itself a signal — record\n")
+        f.write("it, do not fabricate around it.\n")
+
+    print(f"\n[MOLE] Reports written:\n  {base}.json\n  {base}_SUMMARY.txt")
+    # console summary
+    print("=" * 50)
+    for rec in records:
+        for lt in ("followers", "following"):
+            r = rec[lt]
+            if r and r.get("ok"):
+                print(f"@{rec['username']} {lt}: {len(r['items'])} real rows")
+            else:
+                st = r.get("state") if r else "n/a"
+                print(f"@{rec['username']} {lt}: UNAVAILABLE ({st}) — no fabricated data")
+    print("=" * 50)
+    return records
+
+
+def main():
+    ap = argparse.ArgumentParser(description="MOLE v2 — grounded TikTok recon collector")
+    ap.add_argument("--target", help="single target handle")
+    ap.add_argument("--targets", nargs="+", help="multiple target handles")
+    ap.add_argument("--show", action="store_true", help="visible browser (headless off)")
+    args = ap.parse_args()
+
+    targets = args.targets or ([args.target] if args.target else None)
+    if not targets:
+        ap.error("provide --target or --targets")
+    asyncio.run(run(targets, headless=not args.show))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

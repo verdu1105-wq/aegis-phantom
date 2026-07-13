@@ -1,14 +1,17 @@
 """
-AEGIS PHANTOM — AIRLOCK ENGINE v3.1
+AEGIS PHANTOM  AIRLOCK ENGINE v3.2
 Unified local engine: TikTok monitor + CWIS + FastAPI + WebSocket
 Based on the working airlock_engine.py architecture
 
-PATCH NOTES v3.1:
-- PATCH 1: Client instance guard — prevents dual Room ID chasing
-- PATCH 2: GhostLockDetector Room ID validation — detects redirect attacks
-- PATCH 3: execute_block retry logic — no more silent block failures
+PATCH NOTES v3.2:
+- PATCH 1: Client instance guard  prevents dual Room ID chasing
+- PATCH 2: GhostLockDetector Room ID validation  detects redirect attacks
+- PATCH 3: execute_block retry logic  no more silent block failures
 - PATCH 4: _forward_to_cloud already async via create_task (verified)
-- PATCH 5: Exponential backoff — prevents TikTok ghost-banning AEGIS
+- PATCH 5: Exponential backoff  prevents TikTok ghost-banning AEGIS
+- PATCH 6: Whitelist persistence  survives engine restarts via whitelist.txt
+- PATCH 7: Startup timestamp  session start time displayed on boot
+- PATCH 8: F-14 Multi-Lock  preemptive salvo fires on Ghost Lock exploit detection
 """
 
 from TikTokLive import TikTokLiveClient
@@ -19,6 +22,17 @@ from dotenv import load_dotenv
 from datetime import datetime
 from collections import deque, defaultdict
 import httpx
+try:
+    from tiktok_block_playwright import tiktok_block_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+try:
+    import aegis_ingest
+    INGEST_AVAILABLE = True
+except ImportError:
+    INGEST_AVAILABLE = False
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -26,7 +40,7 @@ import uvicorn
 
 load_dotenv(r"C:\Users\VernonDunbar\Documents\Aegis_Phantom\.env")
 
-# ─── CONFIG ───────────────────────────────────────────────────────────────────
+#  CONFIG 
 WebDefaults.tiktok_sign_api_key = os.getenv("TIKTOK_SIGN_API_KEY")
 
 TARGET       = os.getenv("TIKTOK_TARGET", "essayons123")
@@ -34,25 +48,54 @@ CLOUD_URL    = "https://aegis-cwis-974184310088.us-east1.run.app"
 CLOUD_TOKEN  = os.getenv("AEGIS_CLOUD_TOKEN", "")
 
 WHITELIST = {
-    # ── CORE TEAM ──────────────────────────────────────────
+    #  CORE TEAM 
     "cavalryspice", "jescavalrygal", "jescavalrygal2.0",
     "1jarmygal", "2jarmygal", "jarmygal",
     "verdu1105", "wakandan_sentinel03", "diavatalks",
     "kenneth.cupps4", "mistalina7", "d4rkn8t", "hotgirlmoney",
-    # ── MODS ───────────────────────────────────────────────
+    #  MODS 
     "wasntme328", "shorty8251", "brownsugardoll20",
     "christophermicken3", "infernalfreakshow",
     "let_me_be_the_one1",
-    # ── CONFIRMED FRIENDLIES ───────────────────────────────
+    "stay___launched",
+    #  CONFIRMED FRIENDLIES 
     "yoli1392", "selenaperez26", "lindabentzel",
     "troysupertramp0", "lizzette.28", "creemiib",
     "robbyg973", "laur0627", "yellowrose0627",
     "fluffypinksatanist", "cattychic7", "phoenix.rising.backup2",
     "megsgirl247", "roamingcaptainroman", "d4rkn8t",
     "bbflays13", "forshow4", "viper.vet",
+    # JESS ACTIVE ACCOUNTS
+    "jarmygal1", "jarmygal2.0", "jarmygal3.0",
 }
 
-# ─── CWIS STATE ───────────────────────────────────────────────────────────────
+# ── WHITELIST PERSISTENCE (PATCH 6) ──────────────────────────────────────────
+WHITELIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "whitelist.txt")
+
+def load_whitelist_from_file():
+    """Load additional whitelist entries from whitelist.txt on disk."""
+    if os.path.exists(WHITELIST_FILE):
+        try:
+            with open(WHITELIST_FILE, "r", encoding="utf-8") as f:
+                entries = {line.strip().lstrip("@").lower() for line in f if line.strip() and not line.startswith("#")}
+            WHITELIST.update(entries)
+            print(f"[WHITELIST] Loaded {len(entries)} entries from whitelist.txt")
+        except Exception as e:
+            print(f"[WHITELIST] Failed to load whitelist.txt: {e}")
+
+def save_whitelist_to_file():
+    """Save current runtime whitelist additions back to disk."""
+    try:
+        with open(WHITELIST_FILE, "w", encoding="utf-8") as f:
+            f.write("# AEGIS PHANTOM — Persistent Whitelist\n")
+            f.write(f"# Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            for entry in sorted(WHITELIST):
+                f.write(f"{entry}\n")
+        print(f"[WHITELIST] Saved {len(WHITELIST)} entries to whitelist.txt")
+    except Exception as e:
+        print(f"[WHITELIST] Failed to save whitelist.txt: {e}")
+
+#  CWIS STATE 
 join_times       = deque()
 comment_hashes   = defaultdict(int)
 blocked_accounts = set()
@@ -71,38 +114,38 @@ HOSTILE_KEYWORDS = [
     "shut up jess", "shut up jes",
     "go live", "get off live",
     "stupid bitch", "dumb bitch", "ugly bitch",
-    # ── EE SIGNATURE PHRASES ───────────────────────────────
+    #  EE SIGNATURE PHRASES 
     "bitch & moan show", "bitch and moan show",
     "oppressed professional", "grifter",
     "we the people are sick",
     "today on the bitch",
 ]
 
-# GATOR NAMES — auto-block on join regardless of VAMPIRE state
+# GATOR NAMES  auto-block on join regardless of VAMPIRE state
 GATOR_PATTERNS = [
-    # ── GATOR NETWORK ──────────────────────────────────────
+    #  GATOR NETWORK 
     "gator", "gatorhr", "thehrgator", "bcgator",
-    # ── DEVIL DOG / CLARENCE PATTON ────────────────────────
+    #  DEVIL DOG / CLARENCE PATTON 
     "devil.dog", "devildog", "devil_dog", "devildogforlife",
-    # ── AIRBORNE / MILITARY IMPERSONATORS ──────────────────
+    #  AIRBORNE / MILITARY IMPERSONATORS 
     "airborne_ruc", "airborne_rucka", "airborne_rucca",
-    # ── EE ALIASES ─────────────────────────────────────────
+    #  EE ALIASES 
     "peteynola", "petey_nola", "petey.nola",
     "ee4", "_e.4", "its_ee4",
     "penic81", "armybarbee", "mandarose",
     "rusty.the.clown", "unclerustytheclown",
-    # ── MBW BOT CELL ───────────────────────────────────────
+    #  MBW BOT CELL 
     "mbw",
-    # ── CONFIRMED HOSTILE NODES ────────────────────────────
+    #  CONFIRMED HOSTILE NODES 
     "sheiladempseyzale", "respectfullyno",
     "ibprincess56", "militarybratt",
     "scottchambless", "narcissisticexpert",
     "marinabath1", "15mins.offameucanhave",
-    # ── TONIGHT'S CONFIRMED HOSTILE NODES ──────────────────
+    #  TONIGHT'S CONFIRMED HOSTILE NODES 
     "wesley87866", "nylah4ever0", "user4137704327525",
 ]
 
-# EE NETWORK SIGNATURES — Erin Rice network patterns
+# EE NETWORK SIGNATURES  Erin Rice network patterns
 EE_PATTERNS = [
     "heven_scent",        # Known alias
     "respectfullyno",     # EE 2.0 account
@@ -138,7 +181,7 @@ def is_ee_network(username: str) -> bool:
         return True
     return False
 
-# ─── GHOST LOCK DETECTOR ──────────────────────────────────────────────────────
+#  GHOST LOCK DETECTOR 
 # PATCH 2: Added active_room_id tracking and validate_room_id method
 import threading
 
@@ -152,23 +195,23 @@ class GhostLockDetector:
         self.lock_acquired_at = None
         self.ghost_lock_alerts = 0
         self._lock = threading.Lock()
-        self.active_room_id = None          # PATCH 2 — tracks valid Room ID
+        self.active_room_id = None          # PATCH 2  tracks valid Room ID
 
-    def set_lock(self, handle: str, room_id: str = None):   # PATCH 2 — room_id param added
+    def set_lock(self, handle: str, room_id: str = None):   # PATCH 2  room_id param added
         with self._lock:
             self.lock_state = handle
             self.lock_acquired_at = time.time()
             if room_id:
                 self.active_room_id = room_id
-                print(f"[GHOST LOCK] 🔒 Lock set: @{handle} | Room ID: {room_id}")
+                print(f"[GHOST LOCK]  Lock set: @{handle} | Room ID: {room_id}")
             else:
-                print(f"[GHOST LOCK] 🔒 Lock set: @{handle}")
+                print(f"[GHOST LOCK]  Lock set: @{handle}")
 
-    def validate_room_id(self, room_id: str) -> bool:       # PATCH 2 — detects redirect attacks
-        """Returns False if Room ID doesn't match locked room — potential redirect attack."""
+    def validate_room_id(self, room_id: str) -> bool:       # PATCH 2  detects redirect attacks
+        """Returns False if Room ID doesn't match locked room  potential redirect attack."""
         with self._lock:
             if self.active_room_id and room_id != self.active_room_id:
-                print(f"[GHOST LOCK] 🚨 ROOM ID MISMATCH — Expected: {self.active_room_id} | Got: {room_id}")
+                print(f"[GHOST LOCK]  ROOM ID MISMATCH  Expected: {self.active_room_id} | Got: {room_id}")
                 return False
             return True
 
@@ -179,14 +222,14 @@ class GhostLockDetector:
             self.reconnect_log = [t for t in self.reconnect_log if now - t <= GHOST_LOCK_WINDOW_SEC]
             if len(self.reconnect_log) >= GHOST_LOCK_THRESHOLD:
                 self.ghost_lock_alerts += 1
-                print(f"[GHOST LOCK] ⚠️ EXPLOIT DETECTED — {len(self.reconnect_log)} reconnects in {GHOST_LOCK_WINDOW_SEC}s")
+                print(f"[GHOST LOCK] Ãƒâ€šÃ‚Â  EXPLOIT DETECTED  {len(self.reconnect_log)} reconnects in {GHOST_LOCK_WINDOW_SEC}s")
                 return True
         return False
 
     def on_reconnect(self) -> str | None:
         with self._lock:
             if self.lock_state:
-                print(f"[GHOST LOCK] 🔄 Re-acquiring lock: @{self.lock_state}")
+                print(f"[GHOST LOCK]  Re-acquiring lock: @{self.lock_state}")
             return self.lock_state
 
     def get_status(self) -> dict:
@@ -201,11 +244,116 @@ class GhostLockDetector:
 
 ghost_lock = GhostLockDetector()
 
-# ─── FASTAPI APP ──────────────────────────────────────────────────────────────
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# ── F-14 MULTI-LOCK CONFIG (PATCH 8) ─────────────────────────────────────────
+F14_SALVO_LIMIT      = 20    # Max pre-emptive blocks per salvo
+F14_COOLDOWN_SEC     = 90    # Min seconds between salvos
+F14_STAGGER_SEC      = 0.4   # Delay between each block call
+F14_MIN_VAULT_SIZE   = 10    # Don't fire if vault is too small
+_f14_last_salvo      = 0.0
+_f14_salvo_count     = 0
+_f14_total_blocks    = 0
 
-# ─── CONNECTION MANAGER ───────────────────────────────────────────────────────
+async def f14_preemptive_salvo(reason: str = "GHOST_LOCK_EXPLOIT"):
+    """
+    F-14 TOMCAT MULTI-LOCK — Preemptive block salvo.
+    Fires when Ghost Lock exploit window is detected.
+    Pulls top known-hostile accounts from vault and blocks them
+    BEFORE the websocket resyncs, denying the exploit window.
+    """
+    global _f14_last_salvo, _f14_salvo_count, _f14_total_blocks
+
+    now = time.time()
+
+    # Cooldown gate
+    if now - _f14_last_salvo < F14_COOLDOWN_SEC:
+        remaining = int(F14_COOLDOWN_SEC - (now - _f14_last_salvo))
+        print(f"[F-14] ⏳ Salvo cooldown — {remaining}s remaining")
+        return
+
+    # Need a vault to work with
+    if len(goon_vault) < F14_MIN_VAULT_SIZE:
+        print(f"[F-14] ⚠️ Vault too small ({len(goon_vault)}) — salvo aborted")
+        return
+
+    _f14_last_salvo = now
+    _f14_salvo_count += 1
+
+    print("\n" + "🔴" * 20)
+    print(f"[F-14] 🎯 MULTI-LOCK SALVO #{_f14_salvo_count} INITIATED")
+    print(f"[F-14] 🚀 TRIGGER: {reason}")
+    print("🔴" * 20 + "\n")
+
+    await manager.broadcast({
+        "type": "intel",
+        "intel_type": "F14_SALVO",
+        "burner_id": "CWIS",
+        "message": f"🔴 F-14 MULTI-LOCK SALVO #{_f14_salvo_count} — preemptive strike initiated | {reason}"
+    })
+
+    # Pull top targets — known goons not yet blocked this session
+    targets = [u for u in list(goon_vault)[:F14_SALVO_LIMIT * 3]
+               if u not in blocked_accounts and u not in WHITELIST][:F14_SALVO_LIMIT]
+
+    if not targets:
+        print(f"[F-14] ⚠️ No eligible targets — all vault accounts already blocked this session")
+        return
+
+    print(f"[F-14] 🎯 {len(targets)} targets acquired — firing salvo...")
+    fired = 0
+
+    for username in targets:
+        try:
+            await execute_block(username, "F14_PREEMPTIVE_SALVO")
+            fired += 1
+            _f14_total_blocks += 1
+            await asyncio.sleep(F14_STAGGER_SEC)
+        except Exception as e:
+            print(f"[F-14] ⚠️ Pre-block error for @{username}: {e}")
+            continue
+
+    print(f"[F-14] ✅ SALVO #{_f14_salvo_count} COMPLETE — {fired}/{len(targets)} fired")
+    print(f"[F-14] 📊 Session totals: {_f14_salvo_count} salvos | {_f14_total_blocks} preemptive blocks")
+
+    await manager.broadcast({
+        "type": "intel",
+        "intel_type": "F14_SALVO_COMPLETE",
+        "burner_id": "CWIS",
+        "message": f"✅ F-14 SALVO #{_f14_salvo_count} COMPLETE — {fired} preemptive blocks fired"
+    })
+
+#  FASTAPI APP 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── STARTUP ──────────────────────────────────────────────────────────────
+    session_start = datetime.now()
+    print(f"""
+    ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗███████╗ ██████╗ ███╗   ███╗
+   ██╔════╝ ██║  ██║██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗████╗ ████║
+   ██║  ███╗███████║███████║██╔██╗ ██║   ██║   ██║   ██║██╔████╔██║
+   ██║   ██║██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║
+   ╚██████╔╝██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║
+    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝
+    AEGIS PHANTOM — AIRLOCK ENGINE v3.2
+    TARGET: @{TARGET}
+    SESSION START: {session_start.strftime("%Y-%m-%d %H:%M:%S")} EDT
+    PATCHES: Client Guard | Room ID Validation | Block Retry | Backoff | Whitelist Persist
+    """)
+    load_whitelist_from_file()  # PATCH 6: load persistent whitelist
+    await load_goon_vault()
+    asyncio.create_task(health_checkin())
+    asyncio.create_task(run_monitor())
+    yield
+    # ── SHUTDOWN ─────────────────────────────────────────────────────────────────────────
+    session_end = datetime.now()
+    duration = session_end - session_start
+    print(f"[AEGIS] AIRLOCK ENGINE v3.2 — Session ended {session_end.strftime('%Y-%m-%d %H:%M:%S')} EDT")
+    print(f"[AEGIS] Duration: {str(duration).split('.')[0]} | Total CWIS kills: {cwis_kills}")
+    save_whitelist_to_file()  # PATCH 6: persist whitelist on clean shutdown
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*", "https://aegis-phantom-ops.web.app", "https://aegis-phantom-ops.firebaseapp.com", "https://cybergrid-admin-console.web.app"], allow_methods=["*"], allow_headers=["*"])
+
+#  CONNECTION MANAGER 
 class ConnectionManager:
     def __init__(self):
         self.connections = []
@@ -213,7 +361,7 @@ class ConnectionManager:
     async def connect(self, ws: WebSocket):
         await ws.accept()
         self.connections.append(ws)
-        print(f"🔌 Dashboard connected. Total: {len(self.connections)}")
+        print(f" Dashboard connected. Total: {len(self.connections)}")
 
     def disconnect(self, ws: WebSocket):
         if ws in self.connections:
@@ -232,7 +380,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# ─── ROUTES ───────────────────────────────────────────────────────────────────
+#  ROUTES 
 @app.get("/")
 async def root():
     return {"status": "AEGIS-AIRLOCK-ACTIVE", "target": TARGET, "goons": len(goon_vault)}
@@ -247,7 +395,12 @@ async def health():
         "cwis_kills": cwis_kills,
         "goon_vault": len(goon_vault),
         "dashboards": len(manager.connections),
-        "ghost_lock": ghost_lock.get_status()   # PATCH 2 — exposes Room ID in health endpoint
+        "ghost_lock": ghost_lock.get_status(),
+        "f14_multilock": {
+            "salvos_fired": _f14_salvo_count,
+            "total_preemptive_blocks": _f14_total_blocks,
+            "cooldown_remaining_sec": max(0, int(F14_COOLDOWN_SEC - (time.time() - _f14_last_salvo))) if _f14_last_salvo > 0 else 0
+        }
     }
 
 @app.get("/api/goons")
@@ -263,7 +416,7 @@ async def add_goon(request: Request):
         # Also sync to cloud
         asyncio.create_task(sync_goon_to_cloud(username))
         await manager.broadcast({"type": "goon_added", "username": username})
-        print(f"💀 GOON ADDED: @{username}")
+        print(f" GOON ADDED: @{username}")
     return {"status": "added", "username": username}
 
 @app.post("/api/block")
@@ -274,12 +427,49 @@ async def block_user(request: Request):
     await execute_block(username, reason)
     return {"status": "blocked", "username": username}
 
+@app.post("/api/whitelist")
+async def add_to_whitelist(request: Request):
+    """Add a username to the persistent whitelist at runtime."""
+    data = await request.json()
+    username = data.get("username","").lstrip("@").lower().strip()
+    if username:
+        WHITELIST.add(username)
+        save_whitelist_to_file()  # PATCH 6: persist immediately
+        print(f"[WHITELIST] ADDED: @{username} — persisted to disk")
+        return {"status": "whitelisted", "username": username}
+    return {"status": "error", "message": "No username provided"}
+
+@app.delete("/api/whitelist/{username}")
+async def remove_from_whitelist(username: str):
+    """Remove a username from the whitelist at runtime."""
+    u = username.lstrip("@").lower()
+    WHITELIST.discard(u)
+    save_whitelist_to_file()
+    print(f"[WHITELIST] REMOVED: @{u}")
+    return {"status": "removed", "username": u}
+
 @app.post("/api/mode")
 async def set_mode(request: Request):
     data = await request.json()
     mode = data.get("mode", "WATCH")
     await manager.broadcast({"type": "mode_change", "mode": mode})
     return {"status": "ok", "mode": mode}
+
+@app.post("/api/f14/salvo")
+async def trigger_f14_salvo(request: Request):
+    """Manually trigger F-14 preemptive salvo for testing or emergency use."""
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    reason = data.get("reason", "MANUAL_TRIGGER") if data else "MANUAL_TRIGGER"
+    # Bypass cooldown for manual triggers
+    global _f14_last_salvo
+    _f14_last_salvo = 0.0
+    asyncio.create_task(f14_preemptive_salvo(reason))
+    return {
+        "status": "salvo_launched",
+        "reason": reason,
+        "vault_size": len(goon_vault),
+        "salvo_limit": F14_SALVO_LIMIT
+    }
 
 # WebSocket endpoints matching old dashboard
 @app.websocket("/ws/dashboard/{creator}")
@@ -317,16 +507,16 @@ async def ws_dashboard_plain(ws: WebSocket):
     except:
         manager.disconnect(ws)
 
-# ─── CWIS LOGIC ───────────────────────────────────────────────────────────────
+#  CWIS LOGIC 
 def is_goon(username: str) -> bool:
     u = username.lower()
     if u in goon_vault: return True
     if u in WHITELIST:  return False
-    # Check gator patterns — auto-block regardless of VAMPIRE
+    # Check gator patterns  auto-block regardless of VAMPIRE
     return any(pattern in u for pattern in GATOR_PATTERNS)
 
 def is_gator(username: str) -> bool:
-    """Gator family — block on sight, no VAMPIRE required."""
+    """Gator family  block on sight, no VAMPIRE required."""
     u = username.lower()
     return any(pattern in u for pattern in GATOR_PATTERNS)
 
@@ -334,7 +524,7 @@ def is_hostile(comment: str) -> bool:
     c = comment.lower()
     return any(kw in c for kw in HOSTILE_KEYWORDS)
 
-# ─── VOICE TRIGGER — Jess calls out a username, CWIS locks on ────────────────
+#  VOICE TRIGGER  Jess calls out a username, CWIS locks on 
 VOICE_TRIGGERS = [
     "eyes on",
 ]
@@ -354,12 +544,12 @@ async def check_voice_trigger(username: str, comment: str):
 
     for target in mentions:
         if target.lower() not in WHITELIST and target.lower() != username.lower():
-            print(f"🎯 VOICE LOCK: Jess called out @{target} — tracking")
+            print(f" VOICE LOCK: Jess called out @{target}  tracking")
             await manager.broadcast({
                 "type": "intel",
                 "intel_type": "VOICE_LOCK",
                 "burner_id": "CWIS",
-                "message": f"🎯 VOICE LOCK: @{target} called out by Jess — hunting"
+                "message": f" VOICE LOCK: @{target} called out by Jess  hunting"
             })
             # Add to goon vault immediately
             goon_vault.add(target.lower())
@@ -387,12 +577,12 @@ def check_vampire() -> str:
     return "WATCH"
 
 async def execute_block(username: str, reason: str = "auto"):
-    # PATCH 3: Added retry logic and explicit error logging — no more silent failures
+    # PATCH 3: Added retry logic and explicit error logging  no more silent failures
     global cwis_kills
     u_lower = username.lower()
-    # Whitelist check FIRST — never block friendlies
+    # Whitelist check FIRST  never block friendlies
     if u_lower in WHITELIST or username in WHITELIST:
-        print(f"✅ WHITELIST PROTECTED: @{username} — block cancelled")
+        print(f" WHITELIST PROTECTED: @{username}  block cancelled")
         return
     # Already blocked this session
     if username in blocked_accounts:
@@ -401,10 +591,11 @@ async def execute_block(username: str, reason: str = "auto"):
     try:
         if r and r.sismember("whitelist", u_lower):
             WHITELIST.add(u_lower)
-            print(f"✅ REDIS WHITELIST PROTECTED: @{username}")
+            save_whitelist_to_file()  # PATCH 6: persist to disk
+            print(f" REDIS WHITELIST PROTECTED: @{username}")
             return
     except: pass
-    # Cooldown — don't re-block same account within 120s
+    # Cooldown  don't re-block same account within 120s
     global last_cwis_kill
     import time as _time
     now = _time.time()
@@ -417,7 +608,10 @@ async def execute_block(username: str, reason: str = "auto"):
 
     blocked_accounts.add(username)
     cwis_kills += 1
-    print(f"🔫 CWIS KILL #{cwis_kills}: @{username} — {reason}")
+    print(f" CWIS KILL #{cwis_kills}: @{username}  {reason}")
+
+    if INGEST_AVAILABLE:
+        aegis_ingest.log_kill(username, reason, cwis_kills, TARGET)
 
     evidence = {
         "timestamp": datetime.now().isoformat(),
@@ -433,7 +627,7 @@ async def execute_block(username: str, reason: str = "auto"):
         "kills":    cwis_kills
     })
 
-    # ─── REAL TIKTOK BLOCK EXECUTION — PATCH 3: retry wrapper ────────────────
+    #  REAL TIKTOK BLOCK EXECUTION  PATCH 3: retry wrapper 
     asyncio.create_task(_tiktok_block_with_retry(username))
 
     # Sync to cloud evidence log
@@ -448,27 +642,39 @@ async def execute_block(username: str, reason: str = "auto"):
         pass
 
 async def _tiktok_block_with_retry(username: str):
+    # Try Playwright first (headless browser -- bypasses TikTok bot detection)
+    if PLAYWRIGHT_AVAILABLE:
+        try:
+            result = await tiktok_block_playwright(username, headless=True)
+            if result:
+                print(f"[OK] PLAYWRIGHT BLOCK CONFIRMED: @{username}")
+                return
+            else:
+                print(f"[!] Playwright block failed for @{username} -- falling back to API")
+        except Exception as e:
+            print(f"[!] Playwright error for @{username}: {e}")
+    # Fallback to original API method
     # PATCH 3: Two-attempt retry with explicit error logging
     for attempt in range(1, 3):
         success = await _tiktok_block(username, attempt)
         if success:
             return
         if attempt < 2:
-            print(f"⚠️ Block attempt {attempt} failed for @{username} — retrying in 3s...")
+            print(f"Ãƒâ€šÃ‚Â  Block attempt {attempt} failed for @{username}  retrying in 3s...")
             await asyncio.sleep(3)
-    # Both attempts failed — log to dashboard
-    print(f"❌ BLOCK FAILED BOTH ATTEMPTS: @{username} — logging as evidence")
+    # Both attempts failed  log to dashboard
+    print(f" BLOCK FAILED BOTH ATTEMPTS: @{username}  logging as evidence")
     await manager.broadcast({
         "type": "block_failed",
         "username": username,
-        "reason": "Both block attempts failed — TikTok API degraded or session invalid"
+        "reason": "Both block attempts failed  TikTok API degraded or session invalid"
     })
 
 async def _tiktok_block(username: str, attempt: int = 1) -> bool:
     """Execute real TikTok block using mod session. Returns True on success."""
     SESSION_ID = os.getenv("TIKTOK_SESSION_ID", "")
     if not SESSION_ID:
-        print(f"⚠️ No TikTok session ID — block not executed for @{username}")
+        print(f"Ãƒâ€šÃ‚Â  No TikTok session ID  block not executed for @{username}")
         return False
 
     headers = {
@@ -479,7 +685,7 @@ async def _tiktok_block(username: str, attempt: int = 1) -> bool:
     }
 
     try:
-        # Step 1 — get user ID from username
+        # Step 1  get user ID from username
         async with httpx.AsyncClient(timeout=10, headers=headers) as http:
             resp = await http.get(
                 f"https://www.tiktok.com/api/user/detail/",
@@ -489,40 +695,40 @@ async def _tiktok_block(username: str, attempt: int = 1) -> bool:
             user_id = data.get("userInfo", {}).get("user", {}).get("id", "")
 
             if not user_id:
-                print(f"⚠️ Could not find user ID for @{username} (attempt {attempt})")
+                print(f"Ãƒâ€šÃ‚Â  Could not find user ID for @{username} (attempt {attempt})")
                 return False
 
-        # Step 2 — execute block
+        # Step 2  execute block
         async with httpx.AsyncClient(timeout=5, headers=headers) as http:
             resp = await http.post(
-                "https://www.tiktok.com/api/commit/follow/user/",
+                "https://www.tiktok.com/api/user/block/",
                 params={
                     "user_id": user_id,
-                    "type": 3,  # 3 = block
+                    "type": 1,  # 1 = block
                     "aid": "1988",
                     "channel": "tiktok_web",
                 }
             )
             if resp.status_code == 200:
-                print(f"✅ TIKTOK BLOCK CONFIRMED: @{username} (attempt {attempt})")
+                print(f" TIKTOK BLOCK CONFIRMED: @{username} (attempt {attempt})")
                 return True
             else:
-                print(f"⚠️ TikTok block failed for @{username} (attempt {attempt}): HTTP {resp.status_code} — {resp.text[:100]}")
+                print(f"Ãƒâ€šÃ‚Â  TikTok block failed for @{username} (attempt {attempt}): HTTP {resp.status_code}  {resp.text[:100]}")
                 return False
 
     except httpx.ConnectTimeout:
-        print(f"⚠️ Block UNCONFIRMED (timeout) for @{username} (attempt {attempt}) — block may have landed")
+        print(f"Ãƒâ€šÃ‚Â  Block UNCONFIRMED (timeout) for @{username} (attempt {attempt})  block may have landed")
         try:
             await manager.broadcast({
                 "type":     "block_unconfirmed",
                 "username": username,
-                "reason":   f"Attempt {attempt}: ConnectTimeout — block may have landed"
+                "reason":   f"Attempt {attempt}: ConnectTimeout  block may have landed"
             })
         except: pass
         return True
 
     except Exception as e:
-        print(f"⚠️ TikTok block error for @{username} (attempt {attempt}): {type(e).__name__}: {str(e)}")
+        print(f"Ãƒâ€šÃ‚Â  TikTok block error for @{username} (attempt {attempt}): {type(e).__name__}: {str(e)}")
         try:
             await manager.broadcast({
                 "type":     "block_failed",
@@ -536,12 +742,12 @@ async def trigger_vampire(reason: str):
     global vampire_active, threat_level
     vampire_active = True
     threat_level   = "VAMPIRE"
-    print(f"\n{'🔴'*20}\nVAMPIRE VAMPIRE VAMPIRE\n{reason}\n{'🔴'*20}\n")
+    print(f"\n{''*20}\nVAMPIRE VAMPIRE VAMPIRE\n{reason}\n{''*20}\n")
     await manager.broadcast({
         "type":    "intel",
         "intel_type": "VAMPIRE",
         "burner_id": "CWIS",
-        "message": f"BOT WAVE — CWIS ENGAGED — {reason}"
+        "message": f"BOT WAVE  CWIS ENGAGED  {reason}"
     })
 
 async def sync_goon_to_cloud(username: str):
@@ -555,7 +761,7 @@ async def sync_goon_to_cloud(username: str):
         pass
 
 async def health_checkin():
-    """Ping Cloud Run every 60s — keeps Pi-top badge ONLINE in dashboard."""
+    """Ping Cloud Run every 60s  keeps Pi-top badge ONLINE in dashboard."""
     await asyncio.sleep(5)  # brief delay to let startup finish
     while True:
         try:
@@ -576,20 +782,20 @@ async def load_goon_vault():
     global goon_vault
     try:
         import redis as redis_lib
-        r = redis_lib.from_url("redis://:Ae!1G3PhA04we2g90@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
+        r = redis_lib.from_url("redis://default:EvBAVicTDu110525@redis-10919.c284.us-east1-2.gce.cloud.redislabs.com:10919")
         raw = r.smembers("goons")
         goon_vault = set(g.decode() for g in raw)
-        print(f"🛡️ Vault loaded: {len(goon_vault)} goons from Redis Cloud")
+        print(f" Vault loaded: {len(goon_vault)} goons from Redis Cloud")
     except Exception as e:
-        print(f"⚠️ Vault load failed: {e}")
+        print(f"Ãƒâ€šÃ‚Â  Vault load failed: {e}")
 
 async def run_monitor():
     global threat_level, vampire_active
-    active_client = None  # PATCH 1 — single client instance guard
+    active_client = None  # PATCH 1  single client instance guard
 
     while True:
         try:
-            # PATCH 1 — kill previous client before creating new one
+            # PATCH 1  kill previous client before creating new one
             if active_client is not None:
                 try:
                     await active_client.disconnect()
@@ -599,12 +805,12 @@ async def run_monitor():
                 await asyncio.sleep(2)  # Brief pause to ensure clean teardown
 
             client = TikTokLiveClient(unique_id=f"@{TARGET}")
-            active_client = client  # PATCH 1 — track active instance
+            active_client = client  # PATCH 1  track active instance
 
             @client.on(ConnectEvent)
             async def on_connect(event):
-                print(f"✅ RADAR LOCKED: @{TARGET}")
-                # PATCH 2 — capture and validate Room ID on connect
+                print(f" RADAR LOCKED: @{TARGET}")
+                # PATCH 2  capture and validate Room ID on connect
                 room_id = str(getattr(event, 'room_id', '') or '')
                 ghost_lock.set_lock(TARGET, room_id)
                 handle = ghost_lock.on_reconnect()
@@ -615,43 +821,54 @@ async def run_monitor():
 
             @client.on(DisconnectEvent)
             async def on_disconnect(event):
-                print(f"⚠️ DISCONNECTED: @{TARGET}")
+                print(f"⚠️  DISCONNECTED: @{TARGET}")
                 is_exploit = ghost_lock.on_disconnect()
                 if is_exploit:
+                    reconnects = ghost_lock.get_status()["reconnects_in_window"]
+                    print(f"[F-14] 🔴 Ghost Lock exploit detected — {reconnects} reconnects — LAUNCHING SALVO")
                     await manager.broadcast({
                         "type": "intel",
                         "intel_type": "GHOST_LOCK_ALERT",
                         "burner_id": "CWIS",
-                        "message": f"⚠️ GHOST LOCK EXPLOIT DETECTED — {ghost_lock.get_status()['reconnects_in_window']} reconnects in 5min window"
+                        "message": f"⚠️ GHOST LOCK EXPLOIT DETECTED — {reconnects} reconnects in 5min — F-14 SALVO INCOMING"
                     })
+                    # 🔴 F-14 MULTI-LOCK: Fire preemptive salvo (PATCH 8)
+                    asyncio.create_task(f14_preemptive_salvo(f"Ghost Lock {reconnects}-reconnect exploit window"))
                 await manager.broadcast({"type": "radar_offline", "data": {"target": TARGET}})
 
             @client.on(JoinEvent)
             async def on_join(event):
+                if INGEST_AVAILABLE:
+                        _gs = ghost_lock.get_status()
+                        aegis_ingest.log_join(
+                            username, TARGET,
+                            goon=goon, gator=gator, ee_flag=ee_flag,
+                            ghost_lock_active=(_gs["reconnects_in_window"] >= GHOST_LOCK_THRESHOLD),
+                        )
                 try:
                     username = event.user.unique_id
                     goon     = is_goon(username)
                     gator    = is_gator(username)
                     ee_flag  = is_ee_network(username)
                     if ee_flag and not goon:
-                        print(f"🔴 EE SIGNATURE DETECTED: @{username}")
+                        print(f" EE SIGNATURE DETECTED: @{username}")
                         goon = True  # Treat as goon
                     bot_sus  = False
 
                     join_times.append((time.time(), goon, bot_sus))
 
-                    # Add this after the ghost_lock status check — inside on_join
+                    # Add this after the ghost_lock status check  inside on_join
                     # after the existing join_times.append line:
 
-                    # GHOST LOCK JOIN CAPTURE — log accounts joining during active exploit
+                    # GHOST LOCK JOIN CAPTURE  log accounts joining during active exploit
                     ghost_status = ghost_lock.get_status()
                     if ghost_status["reconnects_in_window"] >= GHOST_LOCK_THRESHOLD:
-                        print(f"🔍 GHOST LOCK JOIN CAPTURED: @{username} — joined during active exploit window")
+                        print(f" GHOST LOCK JOIN CAPTURED: @{username}  joined during active exploit window")
                         await manager.broadcast({
                         "type": "intel",
                         "intel_type": "GHOST_LOCK_JOIN",
                         "burner_id": "CWIS",
-                        "message": f"🔍 GHOST LOCK JOIN: @{username} joined during {ghost_status['reconnects_in_window']}-reconnect exploit window"
+                        "message": f" GHOST LOCK JOIN: @{username} joined during {ghost_status['reconnects_in_window']}-reconnect exploit window"
                              })
                     # Auto-add to goon vault for investigation
                     if username.lower() not in WHITELIST:
@@ -660,15 +877,15 @@ async def run_monitor():
 
                     
 
-                    # GATOR ON SIGHT — block immediately, no VAMPIRE needed
+                    # GATOR ON SIGHT  block immediately, no VAMPIRE needed
                     if gator:
-                        print(f"🐊 GATOR SIGHTING: @{username} — AUTO-BLOCK")
+                        print(f"Ãƒâ€šÃ‚Â  GATOR SIGHTING: @{username}  AUTO-BLOCK")
                         await execute_block(username, "GATOR_SIGHTING")
                         await manager.broadcast({
                             "type": "intel",
                             "intel_type": "GATOR_SIGHTING",
                             "burner_id": "CWIS",
-                            "message": f"🐊 GATOR SIGHTING: @{username} — auto-blocked"
+                            "message": f"Ãƒâ€šÃ‚Â  GATOR SIGHTING: @{username}  auto-blocked"
                         })
                         return
 
@@ -676,7 +893,7 @@ async def run_monitor():
                     if level == "VAMPIRE" and not vampire_active:
                         await trigger_vampire(f"@{username} triggered wave detection")
 
-                    print(f"{'🚨' if goon else '👤'} JOIN: @{username}")
+                    print(f"{'' if goon else ''} JOIN: @{username}")
 
                     await manager.broadcast({
                         "type": "join",
@@ -688,17 +905,17 @@ async def run_monitor():
                         }
                     })
 
-                    # Forward to cloud — already non-blocking via create_task
+                    # Forward to cloud  already non-blocking via create_task
                     asyncio.create_task(_forward_to_cloud(username, f"[JOIN] {username}", goon))
 
-                    # ── PHANTOM RADAR — live join scoring ──────────────────
+                    #  PHANTOM RADAR  live join scoring 
                     asyncio.create_task(_radar_score_join(username, goon))
 
                     if goon and vampire_active:
                         await execute_block(username, "GOON_JOIN_VAMPIRE")
 
                 except Exception as e:
-                    print(f"❌ Join error: {e}")
+                    print(f" Join error: {e}")
 
             @client.on(CommentEvent)
             async def on_comment(event):
@@ -709,14 +926,14 @@ async def run_monitor():
                     hostile  = is_hostile(comment)
                     script   = detect_script(comment)
 
-                    # VOICE TRIGGER — Jess calls out a username
+                    # VOICE TRIGGER  Jess calls out a username
                     if username.lower() in WHITELIST or username.lower() == TARGET.lower():
                         await check_voice_trigger(username, comment)
 
                     if script and not vampire_active:
                         await trigger_vampire(f"Script detected: '{comment[:40]}'")
 
-                    print(f"{'🚨' if goon else '📡'} [{username}]: {comment[:60]}")
+                    print(f"{'' if goon else ''} [{username}]: {comment[:60]}")
 
                     await manager.broadcast({
                         "type":      "comment",
@@ -729,20 +946,20 @@ async def run_monitor():
                         "timestamp": datetime.now().strftime("%H:%M:%S")
                     })
 
-                    # Forward to cloud — non-blocking via create_task
+                    # Forward to cloud  non-blocking via create_task
                     asyncio.create_task(_forward_to_cloud(username, comment, goon))
 
-                    if (goon or hostile) and vampire_active:
-                        await execute_block(username, "HOSTILE_VAMPIRE" if hostile else "GOON_COMMENT")
+                  #  if (goon or hostile) and vampire_active:
+                  #      await execute_block(username, "HOSTILE_VAMPIRE" if hostile else "GOON_COMMENT")
 
                 except Exception as e:
-                    print(f"❌ Comment error: {e}")
+                  print(f" Comment error: {e}")
 
             await client.start()
 
         except Exception as e:
             err = str(e).lower()
-            # PATCH 5 — Exponential backoff prevents TikTok ghost-banning AEGIS
+            # PATCH 5  Exponential backoff prevents TikTok ghost-banning AEGIS
             # Scales with how many reconnects have already fired in the window
             reconnect_delays = [5, 10, 20, 40, 60, 60, 60]
             reconnects_so_far = ghost_lock.get_status()["reconnects_in_window"]
@@ -750,28 +967,41 @@ async def run_monitor():
             wait = reconnect_delays[delay_index]
 
             if "offline" in err or "useroffline" in type(e).__name__.lower():
-                print(f"🔄 @{TARGET} offline — retrying in 30s...")
+                print(f" @{TARGET} offline  retrying in 30s...")
                 await asyncio.sleep(30)
             else:
-                print(f"🔄 Reconnecting in {wait}s... {e}")
+                print(f" Reconnecting in {wait}s... {e}")
                 await asyncio.sleep(wait)
 
 
+
 async def _radar_score_join(username: str, is_goon: bool):
-    """Send live join to Phantom Radar for real-time scoring."""
+    """Send live join to Phantom Radar and Swarm Protocol."""
     try:
         async with httpx.AsyncClient(timeout=1.0) as http:
             await http.post("http://127.0.0.1:8001/radar/score", json={
                 "username": username,
                 "status": "known_hostile" if is_goon else "unknown",
-                "risk_score": 0.9 if is_goon else 0.1,
+                "risk_score": 0.9 if is_goon else 0.7,
                 "rejoins_last_hour": 1,
             })
+        #  SWARM PROTOCOL 
+        risk_score = 0.9 if is_goon else 0.55
+        if risk_score >= 0.5:
+            async with httpx.AsyncClient(timeout=3.0) as swarm_http:
+                await swarm_http.post(
+                    "https://alfred-api-974184310088.us-east1.run.app/swarm/join",
+                    json={
+                        "account": username,
+                        "score": risk_score,
+                        "cluster": "EE Tactical Group" if is_goon else None,
+                        "stream_target": "@jarmgal1"
+                    }
+                )
     except:
         pass
-
 async def _forward_to_cloud(username: str, comment: str, is_goon: bool):
-    # PATCH 4 — confirmed non-blocking (called via create_task throughout)
+    # PATCH 4  confirmed non-blocking (called via create_task throughout)
     try:
         async with httpx.AsyncClient(timeout=3) as http:
             await http.post(f"{CLOUD_URL}/intercept", json={
@@ -783,19 +1013,15 @@ async def _forward_to_cloud(username: str, comment: str, is_goon: bool):
     except:
         pass
 
-# ─── STARTUP ──────────────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
+#  STARTUP 
+# STARTUP handled by lifespan above
+async def startup_disabled():
     print(f"""
-    ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗████████╗ ██████╗ ███╗   ███╗
-   ██╔════╝ ██║  ██║██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗████╗ ████║
-   ██║  ███╗███████║███████║██╔██╗ ██║   ██║   ██║   ██║██╔████╔██║
-   ██║   ██║██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║
-   ╚██████╔╝██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║
-    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝
-    AEGIS PHANTOM — AIRLOCK ENGINE v3.1
+    ================================================
+    AEGIS PHANTOM -- AIRLOCK ENGINE v3.1
     TARGET: @{TARGET}
     PATCHES: Client Guard | Room ID Validation | Block Retry | Exponential Backoff
+    ================================================
     """)
     await load_goon_vault()
     asyncio.create_task(health_checkin())
@@ -803,5 +1029,5 @@ async def startup():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    print(f"🚀 AIRLOCK ENGINE v3.1 starting on port {port}...")
+    print(f"[AEGIS] AIRLOCK ENGINE v3.1 starting on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)

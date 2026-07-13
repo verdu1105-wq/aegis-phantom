@@ -1,4 +1,4 @@
-"""
+﻿"""
 AEGIS PHANTOM - SECURE CLOUD RUN BACKEND v5
 JWT Authentication + Role-Based Access Control
 + Radar Lock (/api/target) - Redis-based target handoff
@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Response
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
@@ -21,6 +22,7 @@ from zeroday_monitor import zeroday_router
 from youtube_monitor import yt_router 
 from deep6 import deep6_router, increment_and_check 
 from sitrep_router import sitrep_router
+from oracle_router import oracle_router
 from publish_router import publish_router
 from bg_generator_router import bg_router
 from stripe_router import stripe_router
@@ -30,6 +32,8 @@ from service_engineer import svc_router
 from tts_router import tts_router
 from theater_router import theater_router
 from token_refresh_router import router as token_refresh_router
+from video_intel_router import router as video_router
+
 load_dotenv()
 # --- CONFIG ---
 JWT_SECRET     = os.getenv("JWT_SECRET", secrets.token_hex(32))
@@ -85,11 +89,13 @@ app.include_router(stripe_router)
 app.include_router(yt_router)
 app.include_router(deep6_router)
 app.include_router(sitrep_router)
+app.include_router(oracle_router)
 app.include_router(publish_router)
 app.include_router(bg_router)
 app.include_router(tts_router)
 app.include_router(theater_router)
 app.include_router(token_refresh_router)
+app.include_router(video_router)
 security = HTTPBearer(auto_error=False)
 # --- JWT HELPERS ---
 def create_token(username: str, role: str, display: str) -> str:
@@ -102,11 +108,53 @@ def create_token(username: str, role: str, display: str) -> str:
     }
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
-def verify_token(token: str) -> Optional[dict]:
+@app.get("/api/rss/fetch")
+async def rss_fetch(url: str):
+    """CORS-safe RSS proxy for SitRep frontend with og:image extraction."""
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except:
-        return None
+        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+            resp = await client.get(url, headers={
+                "User-Agent": "SitRep/2.0 (sitrep.media; intelligence aggregator)",
+                "Accept": "application/rss+xml, application/xml, text/xml, */*",
+            })
+            xml = resp.text
+
+            # Extract article links and fetch og:image for each
+            import xml.etree.ElementTree as ET
+            import re
+
+            try:
+                root = ET.fromstring(xml)
+                items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
+                for item in items[:8]:
+                    # Get article link
+                    link_el = item.find("link")
+                    link = link_el.text if link_el is not None else None
+                    if not link:
+                        continue
+                    # Skip if image already in enclosure or media
+                    if item.find("enclosure") is not None:
+                        continue
+                    # Fetch og:image from article page
+                    try:
+                        art = await client.get(link.strip(), timeout=3, follow_redirects=True)
+                        og = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\'](https?://[^"\']+)["\']', art.text)
+                        if not og:
+                            og = re.search(r'<meta[^>]+content=["\'](https?://[^"\']+\.(?:jpg|jpeg|png|webp))["\'][^>]+property=["\']og:image["\']', art.text)
+                        if og:
+                            # Inject image as enclosure into RSS item
+                            enc = ET.SubElement(item, "enclosure")
+                            enc.set("url", og.group(1))
+                            enc.set("type", "image/jpeg")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            return Response(content=ET.tostring(root, encoding='unicode') if 'root' in dir() else xml.encode(),
+                          media_type="application/xml")
+    except Exception as e:
+        return Response(content=f"<error>{e}</error>", media_type="application/xml")
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     if not credentials:
@@ -245,7 +293,7 @@ async def me(user: dict = Depends(get_current_user)):
 
 # --- TARGET / RADAR LOCK ---
 @app.post("/api/target")
-async def set_target(request: Request, user: dict = Depends(get_current_user)):
+async def set_target(request: Request):
     data = await request.json()
     target = data.get("target", "").strip().lstrip("@")
     if not target:
@@ -285,7 +333,7 @@ async def set_mode(request: Request, user: dict = Depends(get_current_user)):
 
 # --- GOONS ---
 @app.get("/api/goons")
-async def get_goons(user: dict = Depends(get_current_user)):
+async def get_goons():
     if not r:
         return {"goons": [], "count": 0}
     goons = sorted(list(r.smembers("goons")))
@@ -632,8 +680,8 @@ async def intelligence_proxy(request: Request):
         "anthropic-version": "2023-06-01"
     }
     payload = {
-        "model": "claude-sonnet-4-20250514",
-        "max_tokens": 1000,
+        "model": "claude-sonnet-4-6",
+        "max_tokens": 2048,
         "stream": do_stream,
         "messages": [{"role": "user", "content": prompt}]
     }
@@ -1538,7 +1586,7 @@ Respond with ONLY a JSON object: {{"score": N, "label": "LABEL", "reason": "brie
                     resp = await client.post(
                         "https://api.anthropic.com/v1/messages",
                         json={
-                            "model": "claude-sonnet-4-20250514",
+                            "model": "claude-sonnet-4-6",
                             "max_tokens": 100,
                             "messages": [{"role": "user", "content": prompt}]
                         },
